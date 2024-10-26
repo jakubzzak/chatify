@@ -61,7 +61,7 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border scrollbar-thin scrollbar-track-[hsl(var(--muted))] scrollbar-thumb-[hsl(var(--muted-foreground))];
   }
   body {
     @apply bg-background text-foreground;

@@ -1,5 +1,6 @@
 import type { Config } from "tailwindcss";
-import animate from "tailwindcss-animate"
+import tailwindAnimate from "tailwindcss-animate"
+import tailwindScrollbar from "tailwind-scrollbar"
 
 /** @type {import('tailwindcss').Config} */
 const config: Config = {
@@ -85,7 +86,7 @@ const config: Config = {
   		}
   	}
   },
-  plugins: [animate],
+  plugins: [tailwindAnimate, tailwindScrollbar],
 }
 
 export default config;
