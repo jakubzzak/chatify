@@ -1,7 +1,8 @@
-var admin = require('firebase-admin');
+import * as admin from 'firebase-admin';
 
-var serviceAccount = require('./chatify-2024-10-firebase-adminsdk.json');
+const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_OBJECT;
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+const firebaseClient = admin.initializeApp({
+  credential: admin.credential.cert(JSON.parse(serviceAccount ?? '{}')),
 });
+
