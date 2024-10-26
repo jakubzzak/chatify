@@ -60,6 +60,7 @@ export class ChatWebSocketGateway
     this.logger.log(`Message received: ${data.message}`, data);
 
     this.io.emit('message', {
+      createdAt: new Date().toISOString(),
       message: data.message,
       userId: socket.id,
       username: socket.username,
@@ -71,7 +72,7 @@ export class ChatWebSocketGateway
   handleMetaEvent(socket: SocketWithUsername, data: Record<string, any>) {
     this.logger.log(`Meta event received`, data);
 
-    this.io.emit('meta', {
+    socket.broadcast.emit('meta', {
       type: data.type,
       userId: socket.id,
       username: socket.username,
