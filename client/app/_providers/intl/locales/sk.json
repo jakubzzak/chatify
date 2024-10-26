@@ -1,4 +1,8 @@
 {
+  "chatRoom.code": "Kód miestnosti",
+  "chatRoom.createNew": "Vytvoriť miestnosť",
+  "chatRoom.joinExisting": "Vstúpiť do miestnosti",
+  "chatRoom.name": "Názov miestnosti",
   "common.cancel": "Zrušiť",
   "common.close": "Zavrieť",
   "common.discard": "Zahodiť",
@@ -8,7 +12,20 @@
   "common.others": "Ostatné",
   "common.remove": "Odstrániť",
   "common.submit": "Potvrdiť",
-  "footer.rights": "© 2024 {company}. Všetky práva vyhradené.",
+  "common.username": "Používateľské meno",
+  "footer.rights": "Vytvorené s ❤ a ☕ © 2024 {company}. Všetky práva vyhradené.",
+  "formValidation.arrayMax": "Maximálny povolený počet dát je {max}",
+  "formValidation.arrayMin": "Minimálny povolený počet dát je {min}",
+  "formValidation.dateMax": "Maximálni povolený dátum je {max}",
+  "formValidation.dateMin": "Minimálny povolený dátum je {min}",
+  "formValidation.email": "Neplatná emailová adresa",
+  "formValidation.numberInteger": "Musí byť celé číslo",
+  "formValidation.numberMax": "Maximálna povolená hodnota je {max}",
+  "formValidation.numberMin": "Minimálna povolená hodnota je {min}",
+  "formValidation.numberPositive": "Musí byť kladné číslo",
+  "formValidation.required": "Povinné pole",
+  "formValidation.stringMax": "Maximálny povolený počet znakov je {max}",
+  "formValidation.stringMin": "Minimálny povolený počet znakov je {min}",
   "home.title": "Víta vás Chatify",
   "locale.en": "Angličtina",
   "locale.sk": "Slovenčina",
@@ -16,6 +33,5 @@
   "navbar.link.home": "Domov",
   "theme.dark": "Tmavý",
   "theme.light": "Svetlý",
-  "theme.system": "Systém",
-  "common.username": "Používateľské meno"
+  "theme.system": "Systém"
 }
