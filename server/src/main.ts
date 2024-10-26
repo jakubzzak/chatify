@@ -2,13 +2,14 @@ import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import * as os from 'os';
 import { AppModule } from './app.module';
+import * as process from 'node:process';
 
 async function bootstrap() {
   const logger = new Logger('bootstrap');
 
   const app = await NestFactory.create(AppModule, { cors: true });
 
-  const port = 3000;
+  const port = process.env.PORT;
   await app.listen(port, '0.0.0.0', () => {
     const networkInterfaces = os.networkInterfaces();
     let localIp: string | undefined;
