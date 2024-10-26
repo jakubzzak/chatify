@@ -3,6 +3,8 @@ import "./globals.css";
 import {ReactNode} from "react";
 import {ThemeProvider} from "@/app/_providers/theme/theme-provider";
 import {IntlProvider} from "@/app/_providers/intl/intl-provider";
+import {Navbar} from "@/components/navbar";
+import {Footer} from "@/components/footer";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -16,7 +18,11 @@ export default function RootLayout({children}: Readonly<{ children: ReactNode }>
     <body className="antialiased">
     <IntlProvider>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-        {children}
+        <main className="min-w-screen min-h-screen pt-[4.5rem] relative">
+          <Navbar/>
+          {children}
+          <Footer/>
+        </main>
       </ThemeProvider>
     </IntlProvider>
     </body>
