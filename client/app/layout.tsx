@@ -2,6 +2,7 @@ import type {Metadata} from "next";
 import "./globals.css";
 import {ReactNode} from "react";
 import {ThemeProvider} from "@/app/_providers/theme/theme-provider";
+import {IntlProvider} from "@/app/_providers/intl/intl-provider";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -9,12 +10,15 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({children}: Readonly<{ children: ReactNode }>) {
+
   return (
     <html lang="en">
     <body className="antialiased">
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      {children}
-    </ThemeProvider>
+    <IntlProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        {children}
+      </ThemeProvider>
+    </IntlProvider>
     </body>
     </html>
   );
