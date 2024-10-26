@@ -1,0 +1,16 @@
+{
+  "common.cancel": "Cancel",
+  "common.close": "Close",
+  "common.discard": "Discard",
+  "common.done": "Hotovo",
+  "common.download": "Download",
+  "common.filter": "Filter",
+  "common.others": "Others",
+  "common.remove": "Remove",
+  "common.submit": "Submit",
+  "footer.rights": "© 2024 {company}. All rights reserved.",
+  "locale.en": "English",
+  "locale.sk": "Slovak",
+  "navbar.link.chat": "Chat",
+  "navbar.link.home": "Home"
+}
