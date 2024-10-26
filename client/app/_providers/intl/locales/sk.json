@@ -16,5 +16,6 @@
   "navbar.link.home": "Domov",
   "theme.dark": "Tmavý",
   "theme.light": "Svetlý",
-  "theme.system": "Systém"
+  "theme.system": "Systém",
+  "common.username": "Používateľské meno"
 }

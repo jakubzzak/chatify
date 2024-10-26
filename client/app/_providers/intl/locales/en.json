@@ -16,5 +16,6 @@
   "home.title": "Chatify welcomes you",
   "theme.dark": "Dark",
   "theme.light": "Light",
-  "theme.system": "System"
+  "theme.system": "System",
+  "common.username": "Username"
 }
