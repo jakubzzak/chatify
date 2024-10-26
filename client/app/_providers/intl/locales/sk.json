@@ -9,8 +9,12 @@
   "common.remove": "Odstrániť",
   "common.submit": "Potvrdiť",
   "footer.rights": "© 2024 {company}. Všetky práva vyhradené.",
+  "home.title": "Víta vás Chatify",
   "locale.en": "Angličtina",
   "locale.sk": "Slovenčina",
   "navbar.link.chat": "Chat",
-  "navbar.link.home": "Domov"
+  "navbar.link.home": "Domov",
+  "theme.dark": "Tmavý",
+  "theme.light": "Svetlý",
+  "theme.system": "Systém"
 }

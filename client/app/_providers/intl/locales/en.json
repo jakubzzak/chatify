@@ -12,5 +12,9 @@
   "locale.en": "English",
   "locale.sk": "Slovak",
   "navbar.link.chat": "Chat",
-  "navbar.link.home": "Home"
+  "navbar.link.home": "Home",
+  "home.title": "Chatify welcomes you",
+  "theme.dark": "Dark",
+  "theme.light": "Light",
+  "theme.system": "System"
 }
