@@ -1,4 +1,5 @@
 import {TypeWriter} from "@/components/ui/type-writer";
+import {NameInput} from "@/app/_components/name-input";
 
 export default function Home() {
   return (
@@ -6,6 +7,7 @@ export default function Home() {
       <h1 className="text-2xl md:text-4xl lg:text-6xl font-semibold text-center mb-6">
         <TypeWriter value="home.title"/>
       </h1>
+      <NameInput />
     </div>
   );
 }
