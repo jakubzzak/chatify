@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "dev:local": "dotenv -e ./.env.local -- bash -c 'PORT=$PORT next dev -H $HOST'",
+    "start:local": "next dev",
+    "start:dev": "dotenv -e ./.env.local -- bash -c 'PORT=$PORT next dev -H $HOST'",
     "build": "next build",
-    "start": "next start",
+    "start:prod": "next start",
     "lint": "next lint",
     "format": "prettier --write \"app/**/*.{ts,tsx}\" \"components/**/*.{ts,tsx}\" \"lib/**/*.{ts,tsx}\" \"public/**/*.{ts,tsx}\""
   },
