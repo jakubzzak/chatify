@@ -41,14 +41,15 @@ export class ChatWebSocketGateway
       username,
     });
 
-    this.logger.log(`Client connected: ${socket.id}`);
+    this.logger.log(`new Client<${socket['username']}> connected`);
+    return { success: true, userId: socket.id };
   }
 
   handleDisconnect(socket: SocketWithUsername) {
     this.io.emit('meta', {
       type: 'user_disconnected',
       userId: socket.id,
-      username: '',
+      username: socket.username,
     });
 
     this.logger.log(`Client disconnected: ${socket.id}`);
@@ -56,7 +57,7 @@ export class ChatWebSocketGateway
 
   @SubscribeMessage('message')
   handleMessageEvent(socket: SocketWithUsername, data: Record<string, any>) {
-    this.logger.log(`Message received: ${data}`);
+    this.logger.log(`Message received: ${data.message}`);
 
     this.io.emit('message', {
       message: data.message,
