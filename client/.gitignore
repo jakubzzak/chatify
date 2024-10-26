@@ -3,6 +3,7 @@
 /.idea
 /.vscode
 *.local
+.env
 
 *lock*
 *.tsbuildinfo

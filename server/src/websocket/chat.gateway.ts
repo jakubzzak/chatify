@@ -9,7 +9,13 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 
-@WebSocketGateway({ namespace: 'chat' })
+type SocketWithUsername = Socket & { username: string };
+
+@WebSocketGateway({
+  namespace: 'chat',
+  cors: { origin: '*' },
+  transports: ['websocket', 'polling'],
+})
 export class ChatWebSocketGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
@@ -18,20 +24,27 @@ export class ChatWebSocketGateway
   @WebSocketServer() io: Server;
 
   afterInit(server: any) {
-    this.logger.log('WebSocket Gateway Initialized');
+    this.logger.log('Initialized');
   }
 
   handleConnection(socket: Socket) {
+    const username = socket.handshake.query.username;
+    if (!username) {
+      return socket.disconnect();
+    }
+
+    socket['username'] = username;
+
     this.io.emit('meta', {
       type: 'user_connected',
       userId: socket.id,
-      username: '',
+      username,
     });
 
     this.logger.log(`Client connected: ${socket.id}`);
   }
 
-  handleDisconnect(socket: Socket) {
+  handleDisconnect(socket: SocketWithUsername) {
     this.io.emit('meta', {
       type: 'user_disconnected',
       userId: socket.id,
@@ -42,18 +55,26 @@ export class ChatWebSocketGateway
   }
 
   @SubscribeMessage('message')
-  handleMessageEvent(socket: Socket, data: Record<string, any>) {
+  handleMessageEvent(socket: SocketWithUsername, data: Record<string, any>) {
     this.logger.log(`Message received: ${data}`);
 
-    this.io.emit('message', data);
+    this.io.emit('message', {
+      message: data.message,
+      userId: socket.id,
+      username: socket.username,
+    });
     return { success: true };
   }
 
   @SubscribeMessage('meta')
-  handleMetaEvent(client: any, data: any) {
+  handleMetaEvent(socket: SocketWithUsername, data: Record<string, any>) {
     this.logger.log(`Meta event received: ${data}`);
 
-    this.io.emit('meta', data);
+    this.io.emit('meta', {
+      type: data.type,
+      userId: socket.id,
+      username: socket.username,
+    });
     return { success: true };
   }
 }
