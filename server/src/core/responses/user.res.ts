@@ -8,5 +8,5 @@ export class UserResponse {
   username: string;
 
   @ApiProperty()
-  email: number;
+  email: string;
 }

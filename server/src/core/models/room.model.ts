@@ -9,8 +9,11 @@ export class RoomModel {
   @Field(() => String)
   name: string;
 
-  @Field(() => String)
-  code: string;
+  @Field(() => String, { nullable: true })
+  code: string | null;
+
+  @Field(() => Boolean)
+  isPersistent: boolean;
 
   @Field(() => [UserModel])
   members: UserModel[];

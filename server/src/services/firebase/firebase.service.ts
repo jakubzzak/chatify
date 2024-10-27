@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotAcceptableException } from '@nestjs/common';
 import * as admin from 'firebase-admin';
+import { FirebaseCollections } from './types';
 
 @Injectable()
 export class FirebaseService {
@@ -16,7 +17,21 @@ export class FirebaseService {
   authenticateWithEmail = async (authToken: string) => {
     const decodedIdToken = await this.client.auth().verifyIdToken(authToken);
     if (!decodedIdToken.email) {
-      throw new Error('login without email');
+      throw new NotAcceptableException('login without email');
+    }
+
+    const userSnapshot = await this.getDBClient()
+      .collection(FirebaseCollections.Users)
+      .doc(decodedIdToken.uid)
+      .get();
+    if (!userSnapshot.exists) {
+      await this.getDBClient()
+        .collection(FirebaseCollections.Users)
+        .doc(decodedIdToken.uid)
+        .set({
+          username: null,
+          rooms: [],
+        });
     }
   };
 
