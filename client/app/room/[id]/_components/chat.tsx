@@ -1,6 +1,6 @@
 'use client';
 
-import { useSocket } from '@/app/chat/_components/use-socket';
+import { useSocket } from '@/app/room/[id]/_components/use-socket';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -17,6 +17,10 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { TypeWriter } from '@/components/ui/type-writer';
 import { DateFormat } from '@/app/_providers/intl/date-format';
+import { useFetch } from '@/lib/hooks/use-fetch';
+import { useParams, useRouter } from 'next/navigation';
+import Loading from '@/app/loading';
+import { Message } from '@/app/_providers/intl/message';
 
 type Message = {
   message: string;
@@ -28,39 +32,53 @@ type MetaEvent = { userId: string; username: string; type: string };
 
 export function Chat() {
   const { state } = useQueryParam('username', 'jozo');
-  const { socket } = useSocket({
-    autoConnect: false,
-    query: { username: state },
-  });
+
   const [message, setMessage] = useState(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [id, setId] = useState(null);
   const messageRef = useRef<HTMLInputElement>(null);
   const [typingUser, setTypingUser] = useState<MetaEvent>(null);
+  const params = useParams();
+  const { data, loading } = useFetch(`/rooms/${params.id}`);
+  const { socket } = useSocket({
+    autoConnect: false,
+    query: { username: state, roomId: params.id },
+  });
+  const router = useRouter();
 
   useEffect(() => {
-    socket.connect();
-
-    socket.on('connect', () => {
-      setId(socket.id);
-    });
-
-    socket.on('message', (response: Message) => {
-      setMessages((prev) => [...prev, response]);
-    });
-    socket.on('meta', (response) => {
-      if (response?.type === 'typing_start') {
-        setTypingUser(response);
-      } else if (response?.type === 'typing_end') {
-        setTypingUser(null);
-      }
-    });
-
     return () => {
       socket.off('message', () => {});
       socket.off('meta', () => {});
     };
   }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      socket.connect();
+
+      socket.on('connect', () => {
+        console.log(socket);
+        // setId(socket.handshake.address);
+      });
+
+      socket.on('disconnect', () => {
+        router.push('/room');
+        console.log('aaaaaaaaaaaaaaaa');
+      });
+
+      socket.on('message', (response: Message) => {
+        setMessages((prev) => [...prev, response]);
+      });
+      socket.on('meta', (response) => {
+        if (response?.type === 'typing_start') {
+          setTypingUser(response);
+        } else if (response?.type === 'typing_end') {
+          setTypingUser(null);
+        }
+      });
+    }
+  }, [data, loading]);
 
   const onSendMessage = () => {
     socket.emit('message', { message });
@@ -85,6 +103,10 @@ export function Chat() {
     }
   };
 
+  if (loading) {
+    return <Loading />;
+  }
+
   return (
     <Card className="flex flex-col w-[min(100%,500px)] h-[calc(100vh-10rem)]">
       <CardHeader>
@@ -107,7 +129,11 @@ export function Chat() {
                 <CardHeader className="p-2 font-semibold">
                   <div className="flex justify-between">
                     <Badge>
-                      {_message.userId === id ? 'Me' : _message.username}
+                      {_message.userId === id ? (
+                        <Message value="common.me" />
+                      ) : (
+                        _message.username
+                      )}
                     </Badge>
                     <div className="text-xs">
                       <DateFormat value={_message.createdAt} />
