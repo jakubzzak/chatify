@@ -10,7 +10,7 @@ import {
 import { Message } from '@/app/_providers/intl/message';
 import { Button } from '@/components/ui/button';
 import { Form, useForm } from '@/components/form';
-import { JoinRoomSchema } from '@/app/chat/[id]/_components/schema';
+import { JoinRoomSchema } from '@/app/room/_components/schema';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { FormedInput } from '@/components/form/form-fields';
 
