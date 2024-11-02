@@ -20,6 +20,8 @@
   "common.remove": "Odstrániť",
   "common.submit": "Potvrdiť",
   "common.username": "Používateľské meno",
+  "error.sessionExpired": "Vaša relácia vypršala!",
+  "error.unexpectedError": "Neočakávaná chyba!",
   "footer.rights": "Vytvorené s ❤ a ☕ © 2024 {company}. Všetky práva vyhradené.",
   "formValidation.arrayMax": "Maximálny povolený počet dát je {max}",
   "formValidation.arrayMin": "Minimálny povolený počet dát je {min}",
@@ -38,6 +40,8 @@
   "locale.sk": "Slovenčina",
   "navbar.link.chat": "Chat",
   "navbar.link.home": "Domov",
+  "navbar.signOut": "Odhlásiť sa",
+  "signIn.google": "Prihlásenie pomocou Google",
   "theme.dark": "Tmavý",
   "theme.light": "Svetlý",
   "theme.system": "Systém"
