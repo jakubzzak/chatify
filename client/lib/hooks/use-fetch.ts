@@ -4,7 +4,7 @@ import { useIntl } from '@/app/_providers/intl/intl-provider';
 import useSWR, { KeyedMutator, mutate, useSWRConfig } from 'swr';
 import { PublicConfiguration, ScopedMutator } from 'swr/_internal';
 import { FetcherApi, fetcherApi } from '@/lib/fetch';
-import { useAuth } from '@/app/_providers/auth';
+import { useSessionStorage } from '@/lib/hooks/use-session-storage';
 
 type UseFetchReturn<T> = {
   data: T;
@@ -27,7 +27,7 @@ export const useFetch = <T>(
   swrOptions?: Partial<PublicConfiguration>,
 ): UseFetchReturn<T> => {
   const { locale } = useIntl();
-  const { token } = useAuth();
+  const [token] = useSessionStorage<string>('token');
   if (fetchOptions.haveTo !== undefined && !fetchOptions.haveTo) subPath = null;
 
   let { data, isValidating, isLoading, error, mutate } = useSWR(
