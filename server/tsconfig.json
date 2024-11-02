@@ -22,7 +22,8 @@
       "@core/*": ["src/core/*"],
       "@domains/auth/*": ["src/auth/*"],
       "@domains/user/*": ["src/user/*"],
-      "@domains/room/*": ["src/room/*"]
+      "@domains/room/*": ["src/room/*"],
+      "@domains/chat/*": ["src/chat/*"]
     }
   }
 }

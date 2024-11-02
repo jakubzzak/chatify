@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { FirebaseService } from '@services/firebase/firebase.service';
 import { Socket, io } from 'socket.io-client';
 import { ChatWebSocketGateway } from './chat.gateway';
 
@@ -12,13 +13,16 @@ async function createNestApp(...gateways: any): Promise<INestApplication> {
 
 describe('ChatGateway', () => {
   let gateway: ChatWebSocketGateway;
+  let firebaseService: FirebaseService;
   let app: INestApplication;
   let ioClientA: Socket;
   let ioClientB: Socket;
 
   beforeAll(async () => {
-    app = await createNestApp(ChatWebSocketGateway);
+    app = await createNestApp(ChatWebSocketGateway, FirebaseService);
+    firebaseService = app.get<FirebaseService>(FirebaseService);
     gateway = app.get<ChatWebSocketGateway>(ChatWebSocketGateway);
+    firebaseService.getDBClient();
 
     await app.listen(3998);
 

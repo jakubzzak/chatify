@@ -16,6 +16,10 @@ export class FirebaseService {
   }
 
   authenticateWithEmail = async (authToken: string): Promise<User> => {
+    if (!authToken) {
+      throw new NotAcceptableException('missing auth token');
+    }
+
     const decodedIdToken = await this.client.auth().verifyIdToken(authToken);
     if (!decodedIdToken.email) {
       throw new NotAcceptableException('login without email');
@@ -30,6 +34,7 @@ export class FirebaseService {
       return {
         id: userSnapshot.id,
         username: userSnapshot.data().username,
+        pictureUrl: userSnapshot.data().pictureUrl,
         email: userSnapshot.data().email,
         rooms: userSnapshot.data().rooms,
       };
@@ -37,7 +42,8 @@ export class FirebaseService {
 
     const newUserPayload = {
       id: decodedIdToken.uid,
-      username: null,
+      username: decodedIdToken.name,
+      pictureUrl: decodedIdToken.picture,
       email: decodedIdToken.email,
       rooms: [],
     };
@@ -45,7 +51,6 @@ export class FirebaseService {
       .collection(FirebaseCollections.Users)
       .doc(decodedIdToken.uid)
       .set(newUserPayload);
-
     return newUserPayload;
   };
 

@@ -1,3 +1,4 @@
+import { mapRoomRecordToRoomResponse } from '@domains/room/mappers/room.mapper';
 import { Logger } from '@nestjs/common';
 import {
   OnGatewayConnection,
@@ -8,12 +9,11 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { mapRoomRecordToRoom } from 'src/core/mappers';
-import { Room } from 'src/core/types';
-import { FirebaseService } from '../firebase/firebase.service';
-import { FirebaseCollections } from '../firebase/types';
+import { Room, User } from 'src/core/types';
+import { FirebaseService } from '../services/firebase/firebase.service';
+import { FirebaseCollections } from '../services/firebase/types';
 
-type SocketWithMetadata = Socket & { username: string; room: Room };
+type SocketWithMetadata = Socket & { user: User; room: Room };
 
 @WebSocketGateway({
   namespace: 'chat',
@@ -25,7 +25,7 @@ export class ChatWebSocketGateway
 {
   private readonly logger = new Logger(ChatWebSocketGateway.name);
 
-  constructor(private readonly service: FirebaseService) {}
+  constructor(private readonly firebaseService: FirebaseService) {}
 
   @WebSocketServer() io: Server;
 
@@ -34,48 +34,55 @@ export class ChatWebSocketGateway
   }
 
   async handleConnection(socket: Socket) {
-    const username = socket.handshake.query.username as string;
-    if (!username) {
-      this.logger.debug(`'username' query param is required`);
-      return socket.disconnect();
-    }
     const roomId = socket.handshake.query.roomId as string;
     if (!roomId) {
       this.logger.debug(`'roomId' query param is required`);
       return socket.disconnect();
     }
-    const room = await this.service
+
+    const user = await this.firebaseService.authenticateWithEmail(
+      socket.handshake.auth.token,
+    );
+
+    const roomRef = this.firebaseService
       .getDBClient()
       .collection(FirebaseCollections.Rooms)
-      .doc(roomId)
-      .get();
-    if (!room.exists) {
-      this.logger.debug(`Room<${roomId}> not found`);
+      .doc(roomId);
+
+    const roomDocument = await roomRef.get();
+    if (!roomDocument.exists) {
+      this.logger.warn(`Room<${roomId}> not found`);
       return socket.disconnect();
     }
-    // TODO check if is a member
-    socket.join(roomId);
+    const room = mapRoomRecordToRoomResponse(roomDocument);
 
-    socket['username'] = username;
-    socket['room'] = mapRoomRecordToRoom(room);
-    // socket.handshake.auth
+    socket.join(roomId);
+    socket['user'] = user;
+    socket['room'] = room;
 
     this.handleMetaEvent(socket as SocketWithMetadata, {
       type: 'user_connected',
     });
-    this.logger.log(
-      `Client<${socket['username']}:${socket.handshake.address}> connected`,
-    );
+    this.logger.log(`Client<${user.id}:${user.username}> connected`);
   }
 
   handleDisconnect(socket: SocketWithMetadata) {
     if (!socket.room?.id) {
+      this.logger.error(`Room missing on SocketWithMetadata`, {
+        func: 'handleDisconnect',
+      });
+      return;
+    }
+    if (!socket.user?.id) {
+      this.logger.error(`User missing on SocketWithMetadata`, {
+        func: 'handleDisconnect',
+      });
       return;
     }
 
     this.handleMetaEvent(socket, { type: 'user_disconnected' });
     this.logger.log(
-      `Client<${socket['username']}:${socket.handshake.address}> disconnected`,
+      `Client<${socket.user.id}:${socket.user.username}> disconnected`,
     );
   }
 
@@ -90,23 +97,29 @@ export class ChatWebSocketGateway
       });
       return;
     }
+    if (!socket.user?.id) {
+      this.logger.error(`User missing on SocketWithMetadata`, {
+        func: 'handleMessageEvent',
+      });
+      return;
+    }
     this.logger.log(`Message received: ${data.message}`, data);
 
-    await this.service
+    await this.firebaseService
       .getDBClient()
       .collection(FirebaseCollections.Rooms)
       .doc(socket.room.id)
       .collection('messages')
       .add({
-        userId: socket.handshake.address,
+        userId: socket.user.id,
         content: data.message,
       });
 
     this.io.to(socket.room.id).emit('message', {
       createdAt: new Date().toISOString(),
       message: data.message,
-      userId: socket.handshake.address, // TODO change to userId after auth
-      username: socket.username,
+      userId: socket.user.id,
+      username: socket.user.username,
     });
   }
 
@@ -118,12 +131,18 @@ export class ChatWebSocketGateway
       });
       return;
     }
+    if (!socket.user?.id) {
+      this.logger.error(`User missing on SocketWithMetadata`, {
+        func: 'handleMetaEvent',
+      });
+      return;
+    }
     this.logger.log(`Meta event received`, data);
 
     socket.broadcast.to(socket.room.id).emit('meta', {
       type: data.type,
-      userId: socket.handshake.address, // TODO change to userId after auth
-      username: socket.username,
+      userId: socket.user.id,
+      username: socket.user.username,
     });
   }
 }

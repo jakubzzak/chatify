@@ -4,12 +4,13 @@ export type Room = {
   name: string;
   code: string;
   isPersistent: boolean;
-  members: string[];
+  members: (string | User)[];
 };
 
 export type User = {
   id: string;
   email: string;
+  pictureUrl?: string | null;
   username: string;
   rooms: string[];
 };

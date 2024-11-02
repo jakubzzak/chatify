@@ -6,11 +6,12 @@ import {
   MinLength,
 } from 'class-validator';
 
-export class CreateOrUpdateRoomDto {
+export class UpdateRoomDto {
   @IsString()
   @MinLength(3)
   @MaxLength(25)
-  name: string;
+  @IsOptional()
+  name?: string;
 
   @IsBoolean()
   @IsOptional()

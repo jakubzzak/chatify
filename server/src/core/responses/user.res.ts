@@ -1,12 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class UserResponse {
+export class RoomMemberResponse {
   @ApiProperty()
-  id: number;
+  id: string;
 
   @ApiProperty()
   username: string;
-
-  @ApiProperty()
-  email: string;
 }

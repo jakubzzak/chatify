@@ -1,15 +1,8 @@
 import { User } from '@core/decorators/user.decorator';
-import { mapUser } from '@domains/user/mappers';
-import {
-  Body,
-  Controller,
-  Get,
-  Logger,
-  NotFoundException,
-  Patch,
-} from '@nestjs/common';
+import { Body, Controller, Get, Logger, Patch } from '@nestjs/common';
 import { FirebaseService } from '@services/firebase/firebase.service';
 import { FirebaseCollections } from '@services/firebase/types';
+import { FieldPath } from 'firebase-admin/firestore';
 import { UpdateProfileDto } from './dtos';
 import { UserEntity } from './types';
 
@@ -20,28 +13,22 @@ export class UserController {
   constructor(private readonly firebaseService: FirebaseService) {}
 
   @Get()
-  async getProfile(@User('id') userId: string): Promise<UserEntity> {
-    const userSnapshot = await this.firebaseService
-      .getDBClient()
-      .collection(FirebaseCollections.Users)
-      .where('uid', '==', userId)
-      .get();
-    if (userSnapshot.empty) {
-      this.logger.warn(`User<${userId}> not found`);
-      throw new NotFoundException(`User<${userId}> not found`);
-    }
+  async getProfile(@User() user: UserEntity): Promise<UserEntity> {
+    if (Array.isArray(user.rooms) && user.rooms.length > 0) {
+      const userRooms = await this.firebaseService
+        .getDBClient()
+        .collection(FirebaseCollections.Rooms)
+        .where(FieldPath.documentId(), 'in', user.rooms)
+        .get();
 
-    if (userSnapshot.size > 1) {
-      this.logger.error(
-        `Data corruption, found ${userSnapshot.size} users by a single ID`,
-        {
-          userSnapshots: userSnapshot.docs.map((doc) => doc.data()),
-        },
-      );
-      throw new Error('Data corruption, requires immediate attention');
+      user.rooms = userRooms.docs.map((room) => ({
+        id: room.id,
+        createdAt: room.createTime.toDate().toISOString(),
+        name: room.data().name as string,
+        isPersistent: room.data().isPersistent === true,
+      }));
     }
-
-    return mapUser(userSnapshot.docs[0].data());
+    return user;
   }
 
   @Patch()

@@ -1,15 +1,18 @@
+import { User } from '@core/decorators/user.decorator';
+import { UserEntity } from '@domains/user/types';
 import {
   Body,
+  ConflictException,
   Controller,
   Delete,
   Get,
-  Headers,
   InternalServerErrorException,
   Logger,
   NotFoundException,
   Param,
+  Patch,
   Post,
-  Put,
+  Query,
 } from '@nestjs/common';
 import {
   ApiCreatedResponse,
@@ -17,22 +20,36 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
 } from '@nestjs/swagger';
+import { FieldPath, FieldValue } from 'firebase-admin/firestore';
 import { Public } from 'src/core/decorators/is-public.decorator';
-import { CreateOrUpdateRoomDto } from 'src/core/inputs';
-import { mapRoomRecordToRoom } from 'src/core/mappers';
 import { RoomResponse } from 'src/core/responses/room.res';
 import { FirebaseService } from 'src/services/firebase/firebase.service';
 import { FirebaseCollections } from 'src/services/firebase/types';
+import { CreateRoomDto } from './dtos/create-room.dto';
+import { JoinRoomDto } from './dtos/join-room.dto';
+import { UpdateRoomDto } from './dtos/update-room.dto';
+import {
+  mapRoomRecordToRoomResponse,
+  mapRoomToRoomResponse,
+} from './mappers/room.mapper';
+import { RoomService } from './room.service';
 
 @Controller({ path: '/api/rooms' })
 export class RoomController {
   private readonly logger = new Logger(RoomController.name);
   private roomsCollection: FirebaseFirestore.CollectionReference;
+  private usersCollection: FirebaseFirestore.CollectionReference;
 
-  constructor(private readonly service: FirebaseService) {
-    this.roomsCollection = this.service
+  constructor(
+    private readonly roomService: RoomService,
+    private readonly firebaseService: FirebaseService,
+  ) {
+    this.roomsCollection = this.firebaseService
       .getDBClient()
       .collection(FirebaseCollections.Rooms);
+    this.usersCollection = this.firebaseService
+      .getDBClient()
+      .collection(FirebaseCollections.Users);
   }
 
   @Get()
@@ -40,27 +57,44 @@ export class RoomController {
   @ApiNotFoundResponse({
     description: 'No rooms found',
   })
-  async listRooms(): Promise<RoomResponse[]> {
-    const snapshot = await this.roomsCollection.get();
-    if (snapshot.empty) {
-      throw new Error('No rooms found');
+  async listPublicRooms(
+    @User() user?: UserEntity,
+    @Query('excludeSelf')
+    excludeSelf?: boolean,
+  ): Promise<RoomResponse[]> {
+    const qb = this.roomsCollection.where('code', '==', null);
+    if (user && excludeSelf) {
+      qb.where(FieldPath.documentId(), 'not-in', user.rooms);
     }
 
-    const rooms: RoomResponse[] = [];
-    snapshot.forEach((doc) => rooms.push(mapRoomRecordToRoom(doc)));
-    return rooms;
+    const snapshot = await qb.get();
+    return snapshot.docs.map((room) => mapRoomRecordToRoomResponse(room));
   }
 
   @Get(':roomId')
   @ApiNotFoundResponse({
     description: 'Room not found',
   })
-  async getRoom(@Param('roomId') roomId: string): Promise<RoomResponse> {
-    const snapshot = await this.roomsCollection.doc(roomId).get();
-    if (!snapshot.exists) {
+  async getRoom(
+    @User('rooms') roomIds: string[],
+    @Param('roomId') roomId: string,
+  ): Promise<RoomResponse> {
+    if (!roomIds.includes(roomId)) {
+      throw new ConflictException(`not a member of Room<${roomId}>`);
+    }
+
+    const roomSnapshot = await this.roomsCollection.doc(roomId).get();
+    if (!roomSnapshot.exists) {
       throw new NotFoundException(`Room<${roomId}> not found`);
     }
-    return mapRoomRecordToRoom(snapshot);
+
+    const roomMembersSnapshot = await this.usersCollection
+      .where('rooms', 'array-contains', roomId)
+      .get();
+    if (roomMembersSnapshot.empty) {
+      throw new NotFoundException(`Room<${roomId}> members not found`);
+    }
+    return mapRoomRecordToRoomResponse(roomSnapshot, roomMembersSnapshot.docs);
   }
 
   @Post()
@@ -69,19 +103,26 @@ export class RoomController {
     type: RoomResponse,
   })
   async createRoom(
-    @Headers() headers,
-    @Body() body: CreateOrUpdateRoomDto,
+    @User('id') userId: string,
+    @Body() body: CreateRoomDto,
   ): Promise<RoomResponse> {
-    let code = null;
-    if (body.isPrivate) {
-      code = this.generateRoomCode();
-    }
+    const docRef = await this.firebaseService
+      .getDBClient()
+      .runTransaction(async () => {
+        const innerDocRef = await this.roomsCollection.add({
+          name: body.name,
+          admin: userId,
+          code: body.isPrivate ? this.roomService.generateRoomCode() : null,
+          isPersistent: body.isPersistent === true,
+          members: [userId],
+        });
 
-    const docRef = await this.roomsCollection.add({
-      name: body.name,
-      code,
-      isPersistent: body.isPersistent === true,
-    });
+        await this.usersCollection.doc(userId).update({
+          rooms: FieldValue.arrayUnion(innerDocRef.id),
+        });
+
+        return innerDocRef;
+      });
 
     const snapshot = await docRef.get();
     if (!snapshot.exists) {
@@ -89,10 +130,10 @@ export class RoomController {
         `Created Room<${docRef.id}>, but the entity wasn\'t found`,
       );
     }
-    return mapRoomRecordToRoom(snapshot);
+    return mapRoomRecordToRoomResponse(snapshot);
   }
 
-  @Put(':roomId')
+  @Patch(':roomId')
   @ApiOkResponse({
     description: 'The record has been successfully updated.',
     type: RoomResponse,
@@ -102,21 +143,33 @@ export class RoomController {
   })
   async updateRoom(
     @Param('roomId') roomId: string,
-    @Body() body: CreateOrUpdateRoomDto,
+    @Body() body: UpdateRoomDto,
   ): Promise<RoomResponse> {
     const snapshot = await this.roomsCollection.doc(roomId).get();
     if (!snapshot.exists) {
       throw new NotFoundException(`Room<${roomId}> not found`);
     }
 
-    await this.roomsCollection.doc(roomId).set(body);
+    await this.roomsCollection.doc(roomId).set({
+      name: body.name ?? snapshot.data().name,
+      code:
+        typeof body.isPrivate === 'boolean'
+          ? body.isPrivate === true
+            ? (snapshot.data().code ?? this.roomService.generateRoomCode())
+            : null
+          : snapshot.data().code,
+      isPersistent:
+        typeof body.isPersistent === 'boolean'
+          ? body.isPersistent
+          : snapshot.data().isPersistent,
+    });
     const updatedSnapshot = await this.roomsCollection.doc(roomId).get();
     if (!updatedSnapshot.exists) {
       throw new InternalServerErrorException(
         `Updated Room<${roomId}>, but the entity wasn\'t found after update`,
       );
     }
-    return mapRoomRecordToRoom(updatedSnapshot);
+    return mapRoomRecordToRoomResponse(updatedSnapshot);
   }
 
   @Delete(':roomId')
@@ -135,11 +188,24 @@ export class RoomController {
     await this.roomsCollection.doc(roomId).delete();
   }
 
-  private generateRoomCode = (length: number = 6) => {
-    let codeBuilder = '';
-    for (let i = 0; i < length; i++) {
-      codeBuilder += Math.floor(Math.random() * 10).toString();
+  @Post('/join')
+  @ApiOkResponse({
+    description: 'Room joined successfully.',
+    type: RoomResponse,
+  })
+  async joinRoom(
+    @User() user: UserEntity,
+    @Body() body: JoinRoomDto,
+  ): Promise<RoomResponse> {
+    if (body.roomId) {
+      const publicRoom = await this.roomService.joinPublicRoom(
+        user,
+        body.roomId,
+      );
+      return mapRoomToRoomResponse(publicRoom);
     }
-    return codeBuilder;
-  };
+
+    const privateRoom = await this.roomService.joinPrivateRoom(user, body.code);
+    return mapRoomToRoomResponse(privateRoom);
+  }
 }
