@@ -1,16 +1,13 @@
 import { Fetcher } from 'swr';
-import { ServerError } from '@/lib/errors';
 
 export class FetchApiError extends Error {
-  public code: string;
   public status: number;
-  public errors: any;
+  public error: string;
 
-  constructor(code: string, status: number, message: string, errors?: any) {
+  constructor(statusCode: number, error: string, message: string) {
     super(message);
-    this.code = code;
-    this.status = status;
-    this.errors = errors;
+    this.status = statusCode;
+    this.error = error;
     Object.setPrototypeOf(this, FetchApiError.prototype);
   }
 }
@@ -58,30 +55,14 @@ export async function fetchApi(url: string, init?: RequestProps) {
     headers,
     ...(init || {}),
   }).then(async (response) => {
-    if (response.status === 401) {
-      throw new FetchApiError(
-        ServerError.UNAUTHORIZED,
-        response.status,
-        `Unauthorized`,
-      );
-    }
-
     if (response.status >= 300 || response.status < 200) {
-      if (response.status === 400)
-        return response.json().then((errorObject) => {
-          throw new FetchApiError(
-            errorObject.code,
-            response.status,
-            errorObject.message,
-            errorObject?.errors,
-          );
-        });
-
-      throw new FetchApiError(
-        'NO_CODE',
-        response.status,
-        `status ${response.status}`,
-      );
+      return response.json().then((errorObject) => {
+        throw new FetchApiError(
+          errorObject.statusCode,
+          errorObject.error,
+          errorObject.message,
+        );
+      });
     }
 
     const contentType = response.headers.get('content-type');
@@ -124,29 +105,14 @@ export const fetcherApi: FetcherApi =
         ...options,
       },
     ).then(async (response) => {
-      if (response.status === 401) {
-        throw new FetchApiError(
-          ServerError.UNAUTHORIZED,
-          response.status,
-          `Unauthorized`,
-        );
-      }
-
       if (response.status >= 300 || response.status < 200) {
-        if (response.status == 400)
-          return response.json().then((errorObject) => {
-            throw new FetchApiError(
-              errorObject.code,
-              response.status,
-              errorObject.message,
-            );
-          });
-
-        throw new FetchApiError(
-          'NO_CODE',
-          response.status,
-          `status ${response.status}`,
-        );
+        return response.json().then((errorObject) => {
+          throw new FetchApiError(
+            errorObject.statusCode,
+            errorObject.error,
+            errorObject.message,
+          );
+        });
       }
 
       return response.json();

@@ -3,8 +3,16 @@
 import { useIntl } from '@/app/_providers/intl/intl-provider';
 import useSWR, { KeyedMutator, mutate, useSWRConfig } from 'swr';
 import { PublicConfiguration, ScopedMutator } from 'swr/_internal';
-import { FetcherApi, fetcherApi } from '@/lib/fetch';
+import {
+  fetchApi,
+  FetchApiError,
+  FetcherApi,
+  fetcherApi,
+  RequestProps,
+} from '@/lib/fetch';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
+import { useAuth } from '@/app/_providers/auth';
+import { useToast } from '@/components/ui/toast/use-toast';
 
 type UseFetchReturn<T> = {
   data: T;
@@ -20,6 +28,30 @@ export type UseFetchOptions = Partial<
   Omit<Parameters<FetcherApi>, 'locale'>[0]
 > &
   RevalidateOption;
+
+export const useFetcher = () => {
+  const mutate = useRevalidate();
+  const { token, endSession } = useAuth();
+  const { defaultErrorToast, toast } = useToast();
+
+  const errorHandler = (err: FetchApiError) => {
+    if (err.status === 401) {
+      toast({
+        title: 'error.sessionExpired',
+        variant: 'info',
+      });
+      endSession();
+    } else if (err.status !== 400) {
+      defaultErrorToast();
+    }
+  };
+
+  const fetcher = async (url: string, init?: RequestProps) => {
+    return fetchApi(url, init ? { token, ...init } : { token });
+  };
+
+  return { mutate, fetcher, errorHandler };
+};
 
 export const useFetch = <T>(
   subPath: string | null,
