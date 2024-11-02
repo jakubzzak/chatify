@@ -1,26 +1,29 @@
-import {ThemeToggle} from "@/app/_providers/theme/theme-toggle";
-import LocaleToggle from "@/app/_providers/intl/locale-toggle";
-import {HomeIcon, MessageCircle} from "lucide-react";
-import {NavbarLink} from "@/components/navbar/navbar-link";
+import { ThemeToggle } from '@/app/_providers/theme/theme-toggle';
+import LocaleToggle from '@/app/_providers/intl/locale-toggle';
+import { NavbarLink } from '@/components/navbar/navbar-link';
+import { UserProfile } from '@/components/navbar/profile';
 
-const links = [
-  { key: "navbar.link.home", href: "/", icon: HomeIcon },
-  { key: "navbar.link.chat", href: "/chat", icon: MessageCircle },
-]
+const publicLinks = [];
 
-export function Navbar() {
+const privateLinks = [];
+
+export function Navbar({ variant }: { variant: 'private' | 'public' }) {
+  const links = variant === 'public' ? publicLinks : privateLinks;
+
   return (
-    <header className="w-full h-14 flex flex-row items-center justify-between gap-x-4 px-2 backdrop-blur-md fixed top-0 right-0 z-10 border-b">
+    <header className="w-full h-14 flex flex-row items-center justify-between gap-x-4 px-2 sm:px-6 backdrop-blur-md fixed top-0 right-0 z-10 border-b">
       <div className="flex flex-row gap-x-2">
-        {links.map(({ key, href, icon: Icon }) =>
+        {variant === 'private' && <UserProfile />}
+        {links.map(({ key, href, icon: Icon }) => (
           <NavbarLink key={key} text={key} href={href}>
             <Icon className="w-5 h-5" />
-          </NavbarLink>)}
+          </NavbarLink>
+        ))}
       </div>
       <div className="flex flex-row gap-x-2">
         <LocaleToggle />
-        <ThemeToggle/>
+        <ThemeToggle />
       </div>
     </header>
-  )
+  );
 }
