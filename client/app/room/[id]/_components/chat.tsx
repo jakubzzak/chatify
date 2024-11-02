@@ -1,6 +1,5 @@
 'use client';
 
-import { useSocket } from '@/app/room/[id]/_components/use-socket';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -11,7 +10,6 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { SendHorizontal } from 'lucide-react';
-import { useQueryParam } from '@/lib/hooks/use-query-param';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +19,7 @@ import { useFetch } from '@/lib/hooks/use-fetch';
 import { useParams, useRouter } from 'next/navigation';
 import Loading from '@/app/loading';
 import { Message } from '@/app/_providers/intl/message';
+import { useAuth } from '@/app/_providers/auth';
 
 type Message = {
   message: string;
@@ -31,8 +30,6 @@ type Message = {
 type MetaEvent = { userId: string; username: string; type: string };
 
 export function Chat() {
-  const { state } = useQueryParam('username', 'jozo');
-
   const [message, setMessage] = useState(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [id, setId] = useState(null);
@@ -40,10 +37,7 @@ export function Chat() {
   const [typingUser, setTypingUser] = useState<MetaEvent>(null);
   const params = useParams();
   const { data, loading } = useFetch(`/rooms/${params.id}`);
-  const { socket } = useSocket({
-    autoConnect: false,
-    query: { username: state, roomId: params.id },
-  });
+  const { socket } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
