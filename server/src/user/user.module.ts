@@ -1,8 +1,6 @@
-import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
-import { GraphQLModule } from '@nestjs/graphql';
-import { UserController } from 'src/controllers/user.controller';
-import { FirebaseModule } from './firebase.module';
+import { FirebaseModule } from '@services/firebase/firebase.module';
+import { UserController } from './user.controller';
 
 @Module({
   imports: [

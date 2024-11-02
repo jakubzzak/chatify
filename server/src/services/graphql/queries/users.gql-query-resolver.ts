@@ -1,9 +1,9 @@
 import { Args, Query, Resolver } from '@nestjs/graphql';
 import { ListUsersArgs } from 'src/core/args/list-users.args';
 import { UserModel } from 'src/core/models';
-import { UserModule } from 'src/modules/user.module';
 import { FirebaseService } from 'src/services/firebase/firebase.service';
 import { FirebaseCollections } from 'src/services/firebase/types';
+import { UserModule } from 'src/user/user.module';
 // import { GetStationsArgs } from '~/core/args';
 // import { StationModel } from '~/core/models';
 // import { StationService } from '~/core/services';

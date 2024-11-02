@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { FirebaseService } from 'src/services/firebase/firebase.service';
+import { FirebaseService } from './firebase.service';
 
 @Module({
   providers: [FirebaseService],
