@@ -31,4 +31,11 @@ export type Room = {
   isPresent: boolean;
   name: string;
   members: User[];
+  messages: {
+    id: string;
+    userId: string;
+    content: string;
+    createdAt: string;
+    username: string;
+  }[];
 };
