@@ -26,7 +26,6 @@ export function CreateRoomForm() {
   const { token } = useAuth();
 
   const onSubmit = async (data) => {
-    console.log(data);
     const _data = {
       ...data,
       isPersistent: data.isPersistent === 'true',
@@ -55,7 +54,6 @@ export function CreateRoomForm() {
           </CardHeader>
           <CardContent className="space-y-2">
             <FormedInput name="name" label="chatRoom.name" />
-            <FormedInput name="username" label="common.username" />
             <div className="flex gap-2">
               <FormedTabs
                 className=""
