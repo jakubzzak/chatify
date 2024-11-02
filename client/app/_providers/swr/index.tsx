@@ -1,21 +1,15 @@
-"use client"
+'use client';
 
-import { SWRConfig } from '@/app/_providers/swr/SWRConfig'
-import {useRouter} from "next/navigation";
+import { SWRConfig } from '@/app/_providers/swr/SWRConfig';
+import { useRouter } from 'next/navigation';
 
 export const SWRProvider = ({ children }) => {
-  const router = useRouter()
+  const router = useRouter();
 
   function endSession() {
-    window.localStorage.removeItem('state')
-    window.localStorage.removeItem('state')
-
-    router.push("/tool")
+    window.sessionStorage.removeItem('token');
+    router.push('/');
   }
 
-  return (
-    <SWRConfig onUnauthorized={endSession}>
-      {children}
-    </SWRConfig>
-  )
-}
+  return <SWRConfig onUnauthorized={endSession}>{children}</SWRConfig>;
+};
