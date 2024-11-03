@@ -11,17 +11,17 @@ import { useAuth } from '@/app/_providers/auth';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Plus } from 'lucide-react';
 import { useFetcher, useRevalidate } from '@/lib/hooks/use-fetch';
 import { useState } from 'react';
 import { InferType } from 'yup';
 
-export function CreateRoomForm() {
+export function CreateRoomForm({ children }) {
   const form = useForm({
     defaultValues: CreateRoomSchema.getDefault(),
     resolver: yupResolver(CreateRoomSchema),
@@ -54,20 +54,15 @@ export function CreateRoomForm() {
 
   return (
     <Dialog onOpenChange={(_open) => setOpen(_open)} open={open}>
-      <DialogTrigger asChild>
-        <Button
-          size="icon"
-          variant="default"
-          className="h-8 w-8"
-          onClick={() => setOpen(true)}>
-          <Plus />
-        </Button>
+      <DialogTrigger asChild onClick={() => setOpen(true)}>
+        {children}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="text-2xl">
             <Message value="chatRoom.createNew" />
           </DialogTitle>
+          <DialogDescription></DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form

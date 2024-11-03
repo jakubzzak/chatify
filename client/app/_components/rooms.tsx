@@ -10,20 +10,35 @@ import { Input } from '@/components/ui/input';
 import { Message } from '@/app/_providers/intl/message';
 import { CreateRoomForm } from '@/app/rooms/_components/create-room-form';
 import { JoinRoomForm } from '@/app/rooms/_components/join-room-form';
+import { LogIn, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
-export function Rooms() {
+export function Rooms({ className }: { className?: string }) {
   const { user } = useAuth();
 
   return (
-    <Card className="flex flex-col p-6 w-[min(100%,20rem)] bg-background absolute left-4 top-20 h-[calc(100vh-6rem)]">
+    <Card
+      className={cn(
+        'flex flex-col p-6 w-full md:w-[21rem] bg-background h-[calc(100vh-5.5rem)]',
+        className,
+      )}>
       <CardHeader className="p-0 pb-6 space-y-2">
         <div className="flex flex-row items-center justify-between gap-2">
           <h2 className="text-2xl">
             <Message value="common.chats" />
           </h2>
           <div className="flex flex-row gap-2">
-            <CreateRoomForm />
-            <JoinRoomForm />
+            <CreateRoomForm>
+              <Button size="icon" variant="default" className="h-8 w-8">
+                <Plus />
+              </Button>
+            </CreateRoomForm>
+            <JoinRoomForm>
+              <Button size="icon" variant="default" className="h-8 w-8">
+                <LogIn />
+              </Button>
+            </JoinRoomForm>
           </div>
         </div>
         <Input onChange={() => {}} placeholder="common.search" />

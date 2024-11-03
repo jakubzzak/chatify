@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { SendHorizontal } from 'lucide-react';
+import { AlignJustify, SendHorizontal } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +20,9 @@ import { useParams, useRouter } from 'next/navigation';
 import Loading from '@/app/loading';
 import { Message } from '@/app/_providers/intl/message';
 import { useAuth } from '@/app/_providers/auth';
-import { Room } from '@/app/room/_components/schema';
+import { Room } from '@/app/rooms/_components/schema';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Rooms } from '@/app/_components/rooms';
 
 type Message = {
   message: string;
@@ -51,13 +53,11 @@ export function Chat() {
       socket.connect();
 
       socket.on('connect', () => {
-        console.log(socket);
-        // setId(socket.handshake.address);
+        console.log('connect');
       });
 
       socket.on('disconnect', () => {
         router.push('/room');
-        console.log('aaaaaaaaaaaaaaaa');
       });
 
       socket.on('message', (response: Message) => {
@@ -101,11 +101,23 @@ export function Chat() {
   }
 
   return (
-    <Card className="w-full">
-      <CardHeader>
+    <Card className="flex flex-col h-[calc(100vh-5.5rem)] flex-grow">
+      <CardHeader className="flex flex-row items-center relative">
         <CardTitle>{data.name}</CardTitle>
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button
+              size="icon"
+              className="absolute md:hidden right-6 top-[0.75rem]">
+              <AlignJustify />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 pt-4">
+            <Rooms className="h-[calc(100vh-1rem)] border-0" />
+          </SheetContent>
+        </Sheet>
       </CardHeader>
-      <CardContent className="flex h-[calc(100vh-14.5rem)]">
+      <CardContent className="flex h-[calc(100vh-14.5rem)] w-full">
         <Card className="flex-grow overflow-y-auto p-2 space-y-4">
           {data.messages.map((message, index) => (
             <div

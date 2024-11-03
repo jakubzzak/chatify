@@ -16,15 +16,15 @@ import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { LogIn } from 'lucide-react';
 import { useState } from 'react';
 
-export function JoinRoomForm() {
+export function JoinRoomForm({ children }) {
   const form = useForm({
     defaultValues: JoinRoomSchema.getDefault(),
     resolver: yupResolver(JoinRoomSchema),
@@ -46,20 +46,15 @@ export function JoinRoomForm() {
 
   return (
     <Dialog onOpenChange={(_open) => setOpen(_open)} open={open}>
-      <DialogTrigger asChild>
-        <Button
-          size="icon"
-          variant="default"
-          className="h-8 w-8"
-          onClick={() => setOpen(true)}>
-          <LogIn />
-        </Button>
+      <DialogTrigger asChild onClick={() => setOpen(true)}>
+        {children}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="text-2xl">
             <Message value="chatRoom.joinExisting" />
           </DialogTitle>
+          <DialogDescription></DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form

@@ -24,7 +24,7 @@ export default function RootLayout({
               defaultTheme="system"
               enableSystem
               disableTransitionOnChange>
-              <main className="min-w-screen min-h-screen pt-[4.5rem] relative">
+              <main className="min-w-screen min-h-screen relative">
                 {children}
               </main>
               <Toaster />

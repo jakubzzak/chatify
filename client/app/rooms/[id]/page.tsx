@@ -1,9 +1,11 @@
-import { Chat } from '@/app/room/[id]/_components/chat';
+import { Chat } from '@/app/rooms/[id]/_components/chat';
+import { Rooms } from '@/app/_components/rooms';
 
 export default function ChatRoomPage() {
   return (
-    <div className="flex flex-col h-[calc(100vh-6rem)] w-[calc(100vw-20rem)] items-center justify-center px-4">
+    <>
+      <Rooms className="hidden md:flex" />
       <Chat />
-    </div>
+    </>
   );
 }
