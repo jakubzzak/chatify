@@ -30,7 +30,7 @@ export function Rooms() {
       </CardHeader>
       <div className="flex flex-col overflow-y-auto space-y-4">
         {user.rooms.map((room) => (
-          <Link key={room.id} href={`/room/${room.id}`}>
+          <Link key={room.id} href={`/rooms/${room.id}`}>
             <Card>
               <CardContent className="flex gap-6 pt-4 relative">
                 <Avatar className="w-16 h-16">
