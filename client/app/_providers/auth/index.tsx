@@ -7,10 +7,10 @@ import { useFetch } from '@/lib/hooks/use-fetch';
 import Loading from '@/app/loading';
 import { signOut } from '@firebase/auth';
 import { auth } from '@/app/firebase-config';
-import { useSocket } from '@/app/room/[id]/_components/use-socket';
+import { useSocket } from '@/app/rooms/[id]/_components/use-socket';
 import { Socket } from 'socket.io-client';
 import { DefaultEventsMap } from '@socket.io/component-emitter';
-import { Room } from '@/app/room/_components/schema';
+import { Room } from '@/app/rooms/_components/schema';
 
 type AuthProviderState = {
   token: string | null;
