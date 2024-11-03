@@ -3,7 +3,7 @@
 import { Message } from '@/app/_providers/intl/message';
 import { Button } from '@/components/ui/button';
 import { Form, useForm } from '@/components/form';
-import { JoinRoomSchema, Room } from '@/app/room/_components/schema';
+import { JoinRoomSchema, Room } from '@/app/rooms/_components/schema';
 import { yupResolver } from '@hookform/resolvers/yup';
 import {
   FormedInput,
@@ -39,7 +39,7 @@ export function JoinRoomForm() {
     return fetcher('/rooms/join', { method: 'POST', body: data })
       .then((res) => {
         setOpen(false);
-        router.push(res?.id);
+        router.push(`/room/${res?.id}`);
       })
       .catch(errorHandler);
   };

@@ -3,7 +3,7 @@
 import { Message } from '@/app/_providers/intl/message';
 import { Button } from '@/components/ui/button';
 import { Form, useForm } from '@/components/form';
-import { CreateRoomSchema } from '@/app/room/_components/schema';
+import { CreateRoomSchema } from '@/app/rooms/_components/schema';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { FormedInput, FormedTabs } from '@/components/form/form-fields';
 import { useRouter } from 'next/navigation';
