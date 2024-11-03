@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import io, { ManagerOptions, Socket, SocketOptions } from 'socket.io-client';
+import { useParams } from 'next/navigation';
 
 export function useSocket(props?: Partial<ManagerOptions & SocketOptions>) {
-  const [socket, _] = useState<Socket>(
-    io(process.env.NEXT_PUBLIC_BACKEND_URL + '/chat', props),
+  const params = useParams();
+  const socket = useMemo<Socket>(
+    () => io(process.env.NEXT_PUBLIC_BACKEND_URL + '/chat', props),
+    [params?.id],
   );
 
   useEffect(() => {

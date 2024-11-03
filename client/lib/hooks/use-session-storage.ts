@@ -49,8 +49,13 @@ export function useSessionStorage<T>(
       const valueToStore =
         value instanceof Function ? value(storedValue) : value;
       setStoredValue(valueToStore);
-      if (typeof window !== undefined)
-        window.sessionStorage.setItem(key, JSON.stringify(valueToStore));
+      if (typeof window !== undefined) {
+        if (props?.stringify) {
+          window.sessionStorage.setItem(key, JSON.stringify(valueToStore));
+        } else if (typeof valueToStore === 'string') {
+          window.sessionStorage.setItem(key, valueToStore);
+        }
+      }
     } catch (error) {
       console.error(error);
     }

@@ -1,6 +1,5 @@
 'use client';
 
-import { useSocket } from '@/app/room/[id]/_components/use-socket';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -10,8 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { SendHorizontal } from 'lucide-react';
-import { useQueryParam } from '@/lib/hooks/use-query-param';
+import { AlignJustify, SendHorizontal } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +19,10 @@ import { useFetch } from '@/lib/hooks/use-fetch';
 import { useParams, useRouter } from 'next/navigation';
 import Loading from '@/app/loading';
 import { Message } from '@/app/_providers/intl/message';
+import { useAuth } from '@/app/_providers/auth';
+import { Room } from '@/app/rooms/_components/schema';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Rooms } from '@/app/_components/rooms';
 
 type Message = {
   message: string;
@@ -31,19 +33,12 @@ type Message = {
 type MetaEvent = { userId: string; username: string; type: string };
 
 export function Chat() {
-  const { state } = useQueryParam('username', 'jozo');
-
   const [message, setMessage] = useState(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [id, setId] = useState(null);
   const messageRef = useRef<HTMLInputElement>(null);
   const [typingUser, setTypingUser] = useState<MetaEvent>(null);
   const params = useParams();
-  const { data, loading } = useFetch(`/rooms/${params.id}`);
-  const { socket } = useSocket({
-    autoConnect: false,
-    query: { username: state, roomId: params.id },
-  });
+  const { data, loading, mutate } = useFetch<Room>(`/rooms/${params.id}`);
+  const { socket, user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -58,17 +53,15 @@ export function Chat() {
       socket.connect();
 
       socket.on('connect', () => {
-        console.log(socket);
-        // setId(socket.handshake.address);
+        console.log('connect');
       });
 
       socket.on('disconnect', () => {
         router.push('/room');
-        console.log('aaaaaaaaaaaaaaaa');
       });
 
       socket.on('message', (response: Message) => {
-        setMessages((prev) => [...prev, response]);
+        mutate();
       });
       socket.on('meta', (response) => {
         if (response?.type === 'typing_start') {
@@ -108,40 +101,52 @@ export function Chat() {
   }
 
   return (
-    <Card className="flex flex-col w-[min(100%,500px)] h-[calc(100vh-10rem)]">
-      <CardHeader>
-        <CardTitle>Card Title</CardTitle>
+    <Card className="flex flex-col h-[calc(100vh-5.5rem)] flex-grow">
+      <CardHeader className="flex flex-row items-center relative">
+        <CardTitle>{data.name}</CardTitle>
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button
+              size="icon"
+              className="absolute md:hidden right-6 top-[0.75rem]">
+              <AlignJustify />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 pt-4">
+            <Rooms className="h-[calc(100vh-1rem)] border-0" />
+          </SheetContent>
+        </Sheet>
       </CardHeader>
-      <CardContent className="flex h-[calc(100vh-18.5rem)]">
+      <CardContent className="flex h-[calc(100vh-14.5rem)] w-full">
         <Card className="flex-grow overflow-y-auto p-2 space-y-4">
-          {messages.map((_message, index) => (
+          {data.messages.map((message, index) => (
             <div
               key={index}
               className={cn(
                 'flex',
-                _message.userId === id ? 'justify-end' : 'justify-start',
+                message.userId === user.id ? 'justify-end' : 'justify-start',
               )}>
               <Card
                 className={cn(
                   'w-10/12',
-                  _message.userId === id ? 'bg-accent' : 'bg-muted',
+                  message.userId === user.id ? 'bg-accent' : 'bg-muted',
                 )}>
                 <CardHeader className="p-2 font-semibold">
                   <div className="flex justify-between">
                     <Badge>
-                      {_message.userId === id ? (
+                      {message.userId === user.id ? (
                         <Message value="common.me" />
                       ) : (
-                        _message.username
+                        message.username
                       )}
                     </Badge>
                     <div className="text-xs">
-                      <DateFormat value={_message.createdAt} />
+                      <DateFormat value={message.createdAt} />
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="flex flex-col p-2">
-                  <p className="text-xs">{_message.message}</p>
+                  <p className="text-xs">{message.content}</p>
                 </CardContent>
               </Card>
             </div>
