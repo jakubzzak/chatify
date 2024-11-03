@@ -39,7 +39,7 @@ export function JoinRoomForm() {
     return fetcher('/rooms/join', { method: 'POST', body: data })
       .then((res) => {
         setOpen(false);
-        router.push(`/room/${res?.id}`);
+        router.push(`/rooms/${res?.id}`);
       })
       .catch(errorHandler);
   };

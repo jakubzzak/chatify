@@ -47,7 +47,7 @@ export function CreateRoomForm() {
       .then((res) => {
         setOpen(false);
         mutate('/profile');
-        router.push(`/room/${res.id}`);
+        router.push(`/rooms/${res.id}`);
       })
       .catch(errorHandler);
   };
