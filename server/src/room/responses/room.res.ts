@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { RoomMessageResponse } from './message.res';
 import { RoomMemberResponse } from './user.res';
 
 export class RoomResponse {
@@ -19,4 +20,7 @@ export class RoomResponse {
 
   @ApiProperty()
   members: RoomMemberResponse[];
+
+  @ApiProperty()
+  messages: RoomMessageResponse[];
 }

@@ -6,6 +6,7 @@ import { FirebaseModule } from '@services/firebase/firebase.module';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { ChatModule } from './chat/chat.module';
+import { GraphqlModule } from './services/graphql/graphql.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { ChatModule } from './chat/chat.module';
     RoomModule,
     FirebaseModule,
     ChatModule,
+    GraphqlModule,
   ],
   controllers: [AppController],
   providers: [],

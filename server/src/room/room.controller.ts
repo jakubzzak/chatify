@@ -1,4 +1,5 @@
 import { User } from '@core/decorators/user.decorator';
+import { RoomResponse } from '@domains/room/responses/room.res';
 import { UserEntity } from '@domains/user/types';
 import {
   Body,
@@ -6,6 +7,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   InternalServerErrorException,
   Logger,
   NotFoundException,
@@ -21,15 +23,13 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { FieldPath, FieldValue } from 'firebase-admin/firestore';
-import { Public } from 'src/core/decorators/is-public.decorator';
-import { RoomResponse } from 'src/core/responses/room.res';
 import { FirebaseService } from 'src/services/firebase/firebase.service';
 import { FirebaseCollections } from 'src/services/firebase/types';
 import { CreateRoomDto } from './dtos/create-room.dto';
 import { JoinRoomDto } from './dtos/join-room.dto';
 import { UpdateRoomDto } from './dtos/update-room.dto';
 import {
-  mapRoomRecordToRoomResponse,
+  mapRoomDocToRoomResponse,
   mapRoomToRoomResponse,
 } from './mappers/room.mapper';
 import { RoomService } from './room.service';
@@ -53,22 +53,110 @@ export class RoomController {
   }
 
   @Get()
-  @Public()
-  @ApiNotFoundResponse({
-    description: 'No rooms found',
-  })
-  async listPublicRooms(
-    @User() user?: UserEntity,
-    @Query('excludeSelf')
-    excludeSelf?: boolean,
+  async listRooms(
+    @User() user: UserEntity,
+    @Query('excludeSelf') excludeSelf?: boolean, // type=member|all|
+    @Query('search') search?: string,
+    @Query('withLastMessage') withLastMessage?: boolean,
   ): Promise<RoomResponse[]> {
-    const qb = this.roomsCollection.where('code', '==', null);
-    if (user && excludeSelf) {
-      qb.where(FieldPath.documentId(), 'not-in', user.rooms);
+    let qb = this.roomsCollection.where('code', '==', null);
+
+    if (excludeSelf && Array.isArray(user.rooms) && user.rooms.length > 0) {
+      const maxBatchSize = 10;
+      const numOfBatches = Math.floor(user.rooms.length / maxBatchSize);
+      for (let i = 0; i < numOfBatches; i++) {
+        const batch = user.rooms.slice(
+          i * numOfBatches,
+          i * numOfBatches + numOfBatches,
+        );
+        qb = qb.where(FieldPath.documentId(), 'not-in', batch);
+      }
     }
 
-    const snapshot = await qb.get();
-    return snapshot.docs.map((room) => mapRoomRecordToRoomResponse(room));
+    const snapshot = await qb
+      .withConverter(this.firebaseService.roomConverter())
+      .orderBy('name')
+      .get();
+    if (search) {
+      return snapshot.docs
+        .map((room) => mapRoomDocToRoomResponse(room))
+        .filter((room) => room.name.includes(search));
+    }
+
+    if (withLastMessage) {
+      return await Promise.all(
+        snapshot.docs.map(async (roomDoc) => {
+          const messages = await roomDoc.ref
+            .collection('messages')
+            .withConverter(this.firebaseService.messageConverter())
+            .orderBy('createdAt', 'desc')
+            .limit(1)
+            .get();
+          return mapRoomToRoomResponse(roomDoc, messages.docs);
+        }),
+      );
+    }
+
+    return snapshot.docs.map((room) => mapRoomDocToRoomResponse(room));
+  }
+
+  @Get('new')
+  async listRoomsNew(
+    @User() user: UserEntity,
+    @Query('type') type: 'member' | 'all' | 'notmember' = 'all',
+    @Query('search') search?: string,
+    @Query('withLastMessage') withLastMessage?: boolean,
+  ): Promise<RoomResponse[]> {
+    let qb = this.roomsCollection.where('name', '!=', null);
+    if (type === 'notmember') {
+      console.log('notmember');
+      qb = qb.where('code', '==', null);
+    }
+
+    if (type !== 'all' && Array.isArray(user.rooms) && user.rooms.length > 0) {
+      console.log('not all');
+      const comparison = type === 'member' ? 'in' : 'not-in';
+      const maxBatchSize = 10;
+      const numOfBatches = Math.floor(user.rooms.length / maxBatchSize);
+      for (let i = 0; i < numOfBatches; i++) {
+        const batch = user.rooms.slice(
+          i * numOfBatches,
+          i * numOfBatches + numOfBatches,
+        );
+        qb = qb.where(FieldPath.documentId(), comparison, batch);
+      }
+    }
+
+    const snapshot = await qb
+      .withConverter(this.firebaseService.roomConverter())
+      .orderBy('name')
+      .get();
+
+    let searchedNameFilter = snapshot.docs;
+    if (search) {
+      console.log('search');
+      searchedNameFilter = snapshot.docs.filter((room) =>
+        room.data().name.includes(search),
+      );
+    }
+
+    if (withLastMessage) {
+      console.log('with message');
+      return await Promise.all(
+        searchedNameFilter.map(async (roomDoc) => {
+          const messages = await roomDoc.ref
+            .collection('messages')
+            .withConverter(this.firebaseService.messageConverter())
+            .orderBy('createdAt', 'desc')
+            .limit(1)
+            .get();
+          return mapRoomToRoomResponse(roomDoc, messages.docs);
+        }),
+      );
+    }
+
+    console.log('bottom');
+    return searchedNameFilter.map((room) => mapRoomDocToRoomResponse(room));
   }
 
   @Get(':roomId')
@@ -83,18 +171,28 @@ export class RoomController {
       throw new ConflictException(`not a member of Room<${roomId}>`);
     }
 
-    const roomSnapshot = await this.roomsCollection.doc(roomId).get();
-    if (!roomSnapshot.exists) {
+    const roomRef = this.roomsCollection.doc(roomId);
+    const roomDoc = await roomRef.get();
+    if (!roomDoc.exists) {
       throw new NotFoundException(`Room<${roomId}> not found`);
     }
 
-    const roomMembersSnapshot = await this.usersCollection
-      .where('rooms', 'array-contains', roomId)
-      .get();
-    if (roomMembersSnapshot.empty) {
-      throw new NotFoundException(`Room<${roomId}> members not found`);
+    const [roomMembers, roomMessages] = await Promise.all([
+      this.usersCollection.where('rooms', 'array-contains', roomId).get(),
+      roomRef
+        .collection('messages')
+        .withConverter(this.firebaseService.messageConverter())
+        .orderBy('createdAt')
+        .get(),
+    ]);
+    if (roomMembers.empty) {
+      throw new NotFoundException(`Room<${roomId}> has no members`);
     }
-    return mapRoomRecordToRoomResponse(roomSnapshot, roomMembersSnapshot.docs);
+    return mapRoomDocToRoomResponse(
+      roomDoc,
+      roomMessages.docs,
+      roomMembers.docs,
+    );
   }
 
   @Post()
@@ -106,31 +204,36 @@ export class RoomController {
     @User('id') userId: string,
     @Body() body: CreateRoomDto,
   ): Promise<RoomResponse> {
-    const docRef = await this.firebaseService
+    const roomDocument = await this.firebaseService
       .getDBClient()
-      .runTransaction(async () => {
-        const innerDocRef = await this.roomsCollection.add({
-          name: body.name,
-          admin: userId,
-          code: body.isPrivate ? this.roomService.generateRoomCode() : null,
-          isPersistent: body.isPersistent === true,
-          members: [userId],
+      .runTransaction(async (trx) => {
+        const userRef = this.usersCollection.doc(userId);
+        // TODO is this valid transaction?
+        const docRef = await this.roomsCollection
+          .withConverter(this.firebaseService.roomConverter())
+          .add({
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            name: body.name,
+            admin: userRef,
+            code: body.isPrivate ? this.roomService.generateRoomCode() : null,
+            isPersistent: body.isPersistent === true,
+            members: [userId],
+          });
+
+        trx.update(userRef, {
+          rooms: FieldValue.arrayUnion(docRef.id),
         });
 
-        await this.usersCollection.doc(userId).update({
-          rooms: FieldValue.arrayUnion(innerDocRef.id),
-        });
-
-        return innerDocRef;
+        return await docRef.get();
       });
 
-    const snapshot = await docRef.get();
-    if (!snapshot.exists) {
+    if (!roomDocument.exists) {
       throw new InternalServerErrorException(
-        `Created Room<${docRef.id}>, but the entity wasn\'t found`,
+        `Created Room<${roomDocument.id}>, but the entity wasn\'t found`,
       );
     }
-    return mapRoomRecordToRoomResponse(snapshot);
+    return mapRoomToRoomResponse(roomDocument);
   }
 
   @Patch(':roomId')
@@ -169,7 +272,7 @@ export class RoomController {
         `Updated Room<${roomId}>, but the entity wasn\'t found after update`,
       );
     }
-    return mapRoomRecordToRoomResponse(updatedSnapshot);
+    return mapRoomDocToRoomResponse(updatedSnapshot);
   }
 
   @Delete(':roomId')
@@ -189,6 +292,7 @@ export class RoomController {
   }
 
   @Post('/join')
+  @HttpCode(200)
   @ApiOkResponse({
     description: 'Room joined successfully.',
     type: RoomResponse,

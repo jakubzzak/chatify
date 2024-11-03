@@ -1,0 +1,25 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Query {
+  rooms(type: String = "all"): [Room!]!
+  users(username: String!): [User!]!
+}
+
+type Room {
+  admin: String!
+  createdAt: String!
+  id: ID!
+  isPersistent: Boolean!
+  isPrivate: Boolean!
+  members: [User!]!
+  name: String!
+}
+
+type User {
+  email: String!
+  id: ID!
+  rooms: [Room!]!
+  username: String!
+}

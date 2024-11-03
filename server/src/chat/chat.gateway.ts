@@ -1,4 +1,4 @@
-import { mapRoomRecordToRoomResponse } from '@domains/room/mappers/room.mapper';
+import { mapRoomDocToRoomResponse } from '@domains/room/mappers/room.mapper';
 import { Logger } from '@nestjs/common';
 import {
   OnGatewayConnection,
@@ -40,9 +40,14 @@ export class ChatWebSocketGateway
       return socket.disconnect();
     }
 
-    const user = await this.firebaseService.authenticateWithEmail(
-      socket.handshake.auth.token,
-    );
+    let user;
+    try {
+      user = await this.firebaseService.authenticateWithEmail(
+        socket.handshake.auth.token,
+      );
+    } catch {
+      return socket.disconnect();
+    }
 
     const roomRef = this.firebaseService
       .getDBClient()
@@ -54,7 +59,7 @@ export class ChatWebSocketGateway
       this.logger.warn(`Room<${roomId}> not found`);
       return socket.disconnect();
     }
-    const room = mapRoomRecordToRoomResponse(roomDocument);
+    const room = mapRoomDocToRoomResponse(roomDocument);
 
     socket.join(roomId);
     socket['user'] = user;
@@ -105,22 +110,24 @@ export class ChatWebSocketGateway
     }
     this.logger.log(`Message received: ${data.message}`, data);
 
-    await this.firebaseService
-      .getDBClient()
-      .collection(FirebaseCollections.Rooms)
-      .doc(socket.room.id)
-      .collection('messages')
-      .add({
-        userId: socket.user.id,
-        content: data.message,
-      });
-
     this.io.to(socket.room.id).emit('message', {
       createdAt: new Date().toISOString(),
       message: data.message,
       userId: socket.user.id,
       username: socket.user.username,
     });
+
+    await this.firebaseService
+      .getDBClient()
+      .collection(FirebaseCollections.Rooms)
+      .doc(socket.room.id)
+      .collection('messages')
+      .add({
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        userId: socket.user.id,
+        content: data.message,
+      });
   }
 
   @SubscribeMessage('meta')

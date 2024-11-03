@@ -7,10 +7,16 @@ export class RoomModel {
   id: string;
 
   @Field(() => String)
+  createdAt: string;
+
+  @Field(() => String)
   name: string;
 
-  @Field(() => String, { nullable: true })
-  code: string | null;
+  @Field(() => String)
+  admin: string;
+
+  @Field(() => Boolean)
+  isPrivate: boolean;
 
   @Field(() => Boolean)
   isPersistent: boolean;

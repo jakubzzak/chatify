@@ -1,11 +1,23 @@
-import { User } from '@core/types';
-import { Injectable, NotAcceptableException } from '@nestjs/common';
+import { Message, Room, User } from '@core/types';
+import {
+  Injectable,
+  Logger,
+  NotAcceptableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import * as admin from 'firebase-admin';
+import {
+  DocumentData,
+  FieldValue,
+  QueryDocumentSnapshot,
+} from 'firebase-admin/firestore';
 import { FirebaseCollections } from './types';
 
 @Injectable()
 export class FirebaseService {
   private client: admin.app.App;
+
+  private logger = new Logger(FirebaseService.name);
 
   constructor() {
     const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_OBJECT;
@@ -16,11 +28,16 @@ export class FirebaseService {
   }
 
   authenticateWithEmail = async (authToken: string): Promise<User> => {
-    if (!authToken) {
-      throw new NotAcceptableException('missing auth token');
+    let decodedIdToken;
+    try {
+      decodedIdToken = await this.client.auth().verifyIdToken(authToken);
+    } catch (error) {
+      this.logger.warn('firebase.verifyIdToken failed', {
+        error,
+      });
+      throw new UnauthorizedException();
     }
 
-    const decodedIdToken = await this.client.auth().verifyIdToken(authToken);
     if (!decodedIdToken.email) {
       throw new NotAcceptableException('login without email');
     }
@@ -56,5 +73,58 @@ export class FirebaseService {
 
   getDBClient = () => {
     return this.client.firestore();
+  };
+
+  roomConverter = () => {
+    return {
+      toFirestore(room: Omit<Room, 'id' | 'messages'>): DocumentData {
+        return {
+          createdAt: room.createdAt,
+          updatedAt: room.updatedAt,
+          name: room.name,
+          admin: room.admin,
+          code: room.code,
+          isPersistent: room.isPersistent,
+          members: FieldValue.arrayUnion(...room.members),
+        };
+      },
+      fromFirestore(snapshot: QueryDocumentSnapshot): Room {
+        const data = snapshot.data();
+        return {
+          id: snapshot.id,
+          createdAt: data.createdAt,
+          updatedAt: data.updatedAt,
+          name: data.name,
+          admin: data.admin,
+          code: data.code,
+          isPersistent: data.isPersistent,
+          members: data.members,
+          messages: data.messages,
+        };
+      },
+    };
+  };
+
+  messageConverter = () => {
+    return {
+      toFirestore(message: Omit<Message, 'id'>): DocumentData {
+        return {
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+          userId: message.userId,
+          content: message.content,
+        };
+      },
+      fromFirestore(snapshot: QueryDocumentSnapshot): Message {
+        const data = snapshot.data();
+        return {
+          id: snapshot.id,
+          createdAt: data.createdAt?.toDate().toISOString(),
+          updatedAt: data.updatedAt.toDate().toISOString(),
+          userId: data.userId,
+          content: data.content,
+        };
+      },
+    };
   };
 }

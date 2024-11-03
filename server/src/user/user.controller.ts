@@ -21,12 +21,15 @@ export class UserController {
         .where(FieldPath.documentId(), 'in', user.rooms)
         .get();
 
-      user.rooms = userRooms.docs.map((room) => ({
-        id: room.id,
-        createdAt: room.createTime.toDate().toISOString(),
-        name: room.data().name as string,
-        isPersistent: room.data().isPersistent === true,
-      }));
+      user.rooms = userRooms.docs
+        .map((room) => ({
+          id: room.id,
+          createdAt: room.createTime.toDate().toISOString(),
+          updatedAt: room.updateTime.toDate().toISOString(),
+          name: room.data().name as string,
+          isPersistent: room.data().isPersistent === true,
+        }))
+        .sort((one, two) => (one.updatedAt < two.updatedAt ? 1 : -1));
     }
     return user;
   }

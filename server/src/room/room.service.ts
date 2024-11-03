@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { FirebaseService } from '@services/firebase/firebase.service';
 import { FirebaseCollections } from '@services/firebase/types';
-import { FieldValue } from 'firebase-admin/firestore';
+import { DocumentSnapshot, FieldValue } from 'firebase-admin/firestore';
 
 @Injectable()
 export class RoomService {
@@ -22,11 +22,11 @@ export class RoomService {
     return codeBuilder;
   };
 
-  joinPublicRoom = async (user: UserEntity, roomId: string): Promise<Room> => {
+  joinPublicRoom = async (user: UserEntity, roomId: string) => {
     return await this.joinRoom(user, roomId);
   };
 
-  joinPrivateRoom = async (user: UserEntity, code: string): Promise<Room> => {
+  joinPrivateRoom = async (user: UserEntity, code: string) => {
     const roomDocument = await this.firebaseService
       .getDBClient()
       .collection(FirebaseCollections.Rooms)
@@ -48,22 +48,21 @@ export class RoomService {
   private joinRoom = async (
     user: UserEntity,
     roomId: string,
-  ): Promise<Room> => {
-    console.log('joining room', roomId);
+  ): Promise<DocumentSnapshot<Omit<Room, 'id' | 'messages'>>> => {
     return await this.firebaseService
       .getDBClient()
       .runTransaction(async (trx) => {
         const roomRef = this.firebaseService
           .getDBClient()
           .collection(FirebaseCollections.Rooms)
+          .withConverter(this.firebaseService.roomConverter())
           .doc(roomId);
-        const roomDocument = await trx.get(roomRef);
-        if (!roomDocument.exists) {
+        const roomDoc = await trx.get(roomRef);
+        if (!roomDoc.exists) {
           throw new NotFoundException(`Room<${roomId}> not found`);
         }
 
-        const room = { ...roomDocument.data(), id: roomDocument.id } as Room;
-        if (room.members.includes(user.id)) {
+        if (roomDoc.data().members.includes(user.id)) {
           throw new ConflictException('already a member');
         }
 
@@ -80,10 +79,8 @@ export class RoomService {
             rooms: FieldValue.arrayUnion(roomId),
           });
 
-        return {
-          ...room,
-          members: [...room.members, user.id],
-        };
+        roomDoc.data().members.push(user.id);
+        return roomDoc;
       });
   };
 }

@@ -5,5 +5,8 @@ export class RoomMemberResponse {
   id: string;
 
   @ApiProperty()
-  username: string;
+  username?: string;
+
+  @ApiProperty()
+  pictureUrl?: string | null;
 }
