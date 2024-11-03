@@ -23,7 +23,7 @@ export function GoogleLogin() {
       .then(async (res) => {
         const result = await res.user.getIdTokenResult();
         setToken(result.token);
-        router.push('/room');
+        router.push('/rooms');
       })
       .catch((err) => console.log(err))
       .finally(() => setLoading(false));
