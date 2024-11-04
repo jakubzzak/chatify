@@ -1,0 +1,63 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+input CreateRoomInput {
+  isPersistent: Boolean!
+  isPrivate: Boolean!
+  name: String!
+}
+
+input JoinRoomInput {
+  code: String
+  roomId: String
+}
+
+type Message {
+  content: String!
+  createdAt: String!
+  id: ID!
+  room: Room!
+  updatedAt: String!
+  user: User!
+}
+
+type Mutation {
+  createRoom(createRoomInput: CreateRoomInput!): Room!
+  joinRoom(joinRoomInput: JoinRoomInput!): Room!
+  updateProfile(username: String!): User!
+  updateRoom(roomId: String!, updateRoomInput: UpdateRoomInput!): Room!
+}
+
+type Query {
+  getProfile: User!
+  getRoom(roomId: String!): Room!
+  listMessages(roomId: String!): [Message!]!
+  listRooms(type: String = "all"): [Room!]!
+}
+
+type Room {
+  admin: String!
+  createdAt: String!
+  id: ID!
+  isPersistent: Boolean!
+  isPrivate: Boolean!
+  lastMessage: Message
+  members: [User!]!
+  messages: [Message!]!
+  name: String!
+}
+
+input UpdateRoomInput {
+  isPersistent: Boolean
+  isPrivate: Boolean
+  name: String
+}
+
+type User {
+  email: String!
+  id: ID!
+  pictureUrl: String
+  rooms: [Room!]!
+  username: String!
+}

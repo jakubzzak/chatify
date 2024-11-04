@@ -1,4 +1,5 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { MessageModel } from './message.model';
 import { UserModel } from './user.model';
 
 @ObjectType('Room')
@@ -23,4 +24,7 @@ export class RoomModel {
 
   @Field(() => [UserModel])
   members: UserModel[];
+
+  @Field(() => MessageModel, { nullable: true })
+  lastMessage: MessageModel | null;
 }

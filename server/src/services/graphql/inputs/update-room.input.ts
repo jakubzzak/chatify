@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { Field, InputType } from '@nestjs/graphql';
 import {
   IsBoolean,
   IsOptional,
@@ -7,19 +7,21 @@ import {
   MinLength,
 } from 'class-validator';
 
-export class CreateRoomDto {
-  @ApiProperty({ required: true })
+@InputType()
+export class UpdateRoomInput {
+  @Field(() => String, { nullable: true })
   @IsString()
   @MinLength(3)
   @MaxLength(25)
-  name: string;
+  @IsOptional()
+  name?: string;
 
-  @ApiProperty({ required: false, default: false })
+  @Field(() => Boolean, { nullable: true })
   @IsBoolean()
   @IsOptional()
   isPrivate?: boolean;
 
-  @ApiProperty({ required: false, default: false })
+  @Field(() => Boolean, { nullable: true })
   @IsBoolean()
   @IsOptional()
   isPersistent?: boolean;

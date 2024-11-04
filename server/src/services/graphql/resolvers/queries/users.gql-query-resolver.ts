@@ -1,35 +1,63 @@
-import { Args, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
-import { ListUsersArgs } from '@services/graphql/args/list-users.args';
+import { User } from '@core/decorators/user.decorator';
+import { UserEntity } from '@domains/user/types';
+import {
+  Args,
+  Mutation,
+  Parent,
+  Query,
+  ResolveField,
+  Resolver,
+} from '@nestjs/graphql';
 import { UserModel } from '@services/graphql/models';
 import { RoomModel } from '@services/graphql/models/room.model';
+import { mapRoomResponse } from '@services/graphql/res/room.res';
+import { mapUserResponse } from '@services/graphql/res/user.res';
+import { FieldPath } from 'firebase-admin/firestore';
 import { FirebaseService } from 'src/services/firebase/firebase.service';
 import { FirebaseCollections } from 'src/services/firebase/types';
 
 @Resolver(() => UserModel)
 export class UsersGqlQueryResolver {
-  constructor(private readonly service: FirebaseService) {}
+  constructor(private readonly firebaseService: FirebaseService) {}
 
-  @Query(() => [UserModel])
-  async users(@Args() args: ListUsersArgs): Promise<UserModel[]> {
-    const users = await this.service
+  @Query(() => UserModel)
+  async getProfile(@User() user: UserEntity) {
+    const userDoc = await this.firebaseService
       .getDBClient()
       .collection(FirebaseCollections.Users)
-      .where({
-        username: args.username,
-      })
+      .withConverter(this.firebaseService.userConverter())
+      .doc(user.id)
       .get();
 
-    return users.docs as unknown as UserModel[];
+    return mapUserResponse(userDoc);
+  }
+
+  @Mutation(() => UserModel)
+  async updateProfile(
+    @User() user: UserEntity,
+    @Args('username') username: string,
+  ) {
+    const userRef = this.firebaseService
+      .getDBClient()
+      .collection(FirebaseCollections.Users)
+      .withConverter(this.firebaseService.userConverter())
+      .doc(user.id);
+
+    await userRef.update({ username });
+
+    const userDoc = await userRef.get();
+    return mapUserResponse(userDoc);
   }
 
   @ResolveField(() => [RoomModel])
-  async rooms(@Parent() user: UserModel): Promise<RoomModel[]> {
-    const rooms = await this.service
+  async rooms(@Parent() user: UserModel) {
+    const rooms = await this.firebaseService
       .getDBClient()
       .collection(FirebaseCollections.Rooms)
-      .where('id', 'in', user.rooms)
+      .withConverter(this.firebaseService.roomConverter())
+      .where(FieldPath.documentId(), 'in', user.rooms)
       .get();
 
-    return rooms.docs as unknown as RoomModel[];
+    return rooms.docs.map(mapRoomResponse);
   }
 }

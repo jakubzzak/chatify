@@ -21,6 +21,8 @@ import {
   ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { FieldPath, FieldValue } from 'firebase-admin/firestore';
 import { FirebaseService } from 'src/services/firebase/firebase.service';
@@ -35,6 +37,7 @@ import {
 import { RoomService } from './room.service';
 
 @Controller({ path: '/api/rooms' })
+@ApiTags('room')
 export class RoomController {
   private readonly logger = new Logger(RoomController.name);
   private roomsCollection: FirebaseFirestore.CollectionReference;
@@ -160,8 +163,28 @@ export class RoomController {
   }
 
   @Get(':roomId')
+  @ApiOkResponse({
+    description: 'The record has been successfully retrieved.',
+    type: RoomResponse,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'User is not logged in',
+    schema: {
+      example: {
+        statusCode: 401,
+        message: 'Unauthorized',
+      },
+    },
+  })
   @ApiNotFoundResponse({
     description: 'Room not found',
+    schema: {
+      example: {
+        statusCode: 404,
+        message: 'Room<roomId> not found',
+        error: 'Not Found',
+      },
+    },
   })
   async getRoom(
     @User('rooms') roomIds: string[],

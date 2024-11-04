@@ -1,7 +1,7 @@
-import { Message, Room, User } from '@core/types';
 import { RoomMessageResponse } from '@domains/room/responses/message.res';
 import { RoomResponse } from '@domains/room/responses/room.res';
 import { RoomMemberResponse } from '@domains/room/responses/user.res';
+import { Message, Room, User } from '@services/firebase/types';
 import { DocumentData, DocumentSnapshot } from 'firebase-admin/firestore';
 
 export const mapRoomDocToRoomResponse = (
@@ -34,11 +34,11 @@ export const mapRoomToRoomResponse = (
   console.log('room to res', roomSnapshot);
   const room = roomSnapshot.data();
   const membersMap = new Map<string, string>(
-    room.members?.map((member) => {
+    roomMembers?.map((member) => {
       if (typeof member === 'string') {
         return [member, member];
       }
-      return [member.id, member.username];
+      return [member.id, member.data().username];
     }) ?? [],
   );
 
@@ -78,7 +78,7 @@ const mapRoomMessageDoc = (
 ): RoomMessageResponse => {
   return {
     id: message.id,
-    createdAt: message.data().createdAt.toDate().toISOString(),
+    createdAt: message.data().createdAt,
     userId: message.data().userId,
     username: membersMap.get(message.data().userId) ?? 'Anonymous Crocodile 🐊',
     content: message.data().content,

@@ -12,6 +12,9 @@ export class UserModel {
   @Field(() => String)
   email: string;
 
+  @Field(() => String, { nullable: true })
+  pictureUrl?: string;
+
   @Field(() => [RoomModel])
   rooms: RoomModel[];
 }

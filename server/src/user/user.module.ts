@@ -3,15 +3,7 @@ import { FirebaseModule } from '@services/firebase/firebase.module';
 import { UserController } from './user.controller';
 
 @Module({
-  imports: [
-    FirebaseModule,
-    // GraphQLModule.forRoot<ApolloDriverConfig>({
-    //   driver: ApolloDriver,
-    //   // playground: false,
-    //   autoSchemaFile: 'schema.gql',
-    //   sortSchema: true,
-    // }),
-  ],
+  imports: [FirebaseModule],
   controllers: [UserController],
 })
 export class UserModule {}

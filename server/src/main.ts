@@ -1,5 +1,6 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as os from 'os';
 import { AppModule } from './app.module';
 import { LoggerMiddleware } from './core/middlewares/logger';
@@ -10,6 +11,33 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
   app.use(new LoggerMiddleware().use);
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
+
+  const config = new DocumentBuilder()
+    .setTitle('Chatify')
+    .setDescription('The Chatify API description')
+    .setVersion('1.0')
+    .addBearerAuth({
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      description: 'Input your JWT token',
+    })
+    .addSecurityRequirements('bearer')
+    .addTag('room')
+    .addTag('chat')
+    .addTag('message')
+    .addTag('profile')
+    .build();
+  const documentFactory = () =>
+    SwaggerModule.createDocument(app, config, {
+      operationIdFactory: (controllerKey: string, methodKey: string) =>
+        methodKey,
+    });
+  SwaggerModule.setup('api', app, documentFactory, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  });
 
   const port = process.env.PORT;
   await app.listen(port, '0.0.0.0', () => {

@@ -1,5 +1,6 @@
 import { User } from '@core/decorators/user.decorator';
 import { Body, Controller, Get, Logger, Patch } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { FirebaseService } from '@services/firebase/firebase.service';
 import { FirebaseCollections } from '@services/firebase/types';
 import { FieldPath } from 'firebase-admin/firestore';
@@ -7,6 +8,7 @@ import { UpdateProfileDto } from './dtos';
 import { UserEntity } from './types';
 
 @Controller({ path: '/api/profile' })
+@ApiTags('profile')
 export class UserController {
   logger = new Logger(UserController.name);
 

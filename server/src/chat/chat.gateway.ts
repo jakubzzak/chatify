@@ -1,5 +1,6 @@
 import { mapRoomDocToRoomResponse } from '@domains/room/mappers/room.mapper';
 import { Logger } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -8,8 +9,8 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
+import { Room, User } from '@services/firebase/types';
 import { Server, Socket } from 'socket.io';
-import { Room, User } from 'src/core/types';
 import { FirebaseService } from '../services/firebase/firebase.service';
 import { FirebaseCollections } from '../services/firebase/types';
 
@@ -20,6 +21,7 @@ type SocketWithMetadata = Socket & { user: User; room: Room };
   cors: { origin: '*' },
   transports: ['websocket', 'polling'],
 })
+@ApiTags('chat')
 export class ChatWebSocketGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
@@ -49,17 +51,17 @@ export class ChatWebSocketGateway
       return socket.disconnect();
     }
 
-    const roomRef = this.firebaseService
+    const roomDoc = await this.firebaseService
       .getDBClient()
       .collection(FirebaseCollections.Rooms)
-      .doc(roomId);
+      .doc(roomId)
+      .get();
 
-    const roomDocument = await roomRef.get();
-    if (!roomDocument.exists) {
+    if (!roomDoc.exists) {
       this.logger.warn(`Room<${roomId}> not found`);
       return socket.disconnect();
     }
-    const room = mapRoomDocToRoomResponse(roomDocument);
+    const room = mapRoomDocToRoomResponse(roomDoc);
 
     socket.join(roomId);
     socket['user'] = user;
@@ -117,17 +119,19 @@ export class ChatWebSocketGateway
       username: socket.user.username,
     });
 
-    await this.firebaseService
-      .getDBClient()
-      .collection(FirebaseCollections.Rooms)
-      .doc(socket.room.id)
-      .collection('messages')
-      .add({
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        userId: socket.user.id,
-        content: data.message,
-      });
+    if (socket.room.isPersistent) {
+      await this.firebaseService
+        .getDBClient()
+        .collection(FirebaseCollections.Rooms)
+        .doc(socket.room.id)
+        .collection('messages')
+        .add({
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          userId: socket.user.id,
+          content: data.message,
+        });
+    }
   }
 
   @SubscribeMessage('meta')

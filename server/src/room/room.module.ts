@@ -7,5 +7,6 @@ import { RoomService } from './room.service';
   imports: [FirebaseModule],
   controllers: [RoomController],
   providers: [RoomService],
+  exports: [RoomService],
 })
 export class RoomModule {}

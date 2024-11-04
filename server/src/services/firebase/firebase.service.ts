@@ -1,4 +1,4 @@
-import { Message, Room, User } from '@core/types';
+import { UserEntity } from '@domains/user/types';
 import {
   Injectable,
   Logger,
@@ -11,7 +11,7 @@ import {
   FieldValue,
   QueryDocumentSnapshot,
 } from 'firebase-admin/firestore';
-import { FirebaseCollections } from './types';
+import { FirebaseCollections, Message, Room, User } from './types';
 
 @Injectable()
 export class FirebaseService {
@@ -27,7 +27,7 @@ export class FirebaseService {
     });
   }
 
-  authenticateWithEmail = async (authToken: string): Promise<User> => {
+  authenticateWithEmail = async (authToken: string): Promise<UserEntity> => {
     let decodedIdToken;
     try {
       decodedIdToken = await this.client.auth().verifyIdToken(authToken);
@@ -75,9 +75,32 @@ export class FirebaseService {
     return this.client.firestore();
   };
 
+  userConverter = () => {
+    return {
+      toFirestore(user: Omit<User, 'id'>): DocumentData {
+        return {
+          username: user.username,
+          email: user.email,
+          pictureUrl: user.pictureUrl,
+          rooms: FieldValue.arrayUnion(...user.rooms),
+        };
+      },
+      fromFirestore(snapshot: QueryDocumentSnapshot): User {
+        const data = snapshot.data();
+        return {
+          id: snapshot.id,
+          username: data.username,
+          email: data.email,
+          pictureUrl: data.pictureUrl,
+          rooms: data.rooms,
+        };
+      },
+    };
+  };
+
   roomConverter = () => {
     return {
-      toFirestore(room: Omit<Room, 'id' | 'messages'>): DocumentData {
+      toFirestore(room: Omit<Room, 'id'>): DocumentData {
         return {
           createdAt: room.createdAt,
           updatedAt: room.updatedAt,
@@ -99,7 +122,6 @@ export class FirebaseService {
           code: data.code,
           isPersistent: data.isPersistent,
           members: data.members,
-          messages: data.messages,
         };
       },
     };
@@ -107,20 +129,20 @@ export class FirebaseService {
 
   messageConverter = () => {
     return {
-      toFirestore(message: Omit<Message, 'id'>): DocumentData {
+      toFirestore(payload: Omit<Message, 'id'>): DocumentData {
         return {
-          createdAt: FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
-          userId: message.userId,
-          content: message.content,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          ...payload,
         };
       },
       fromFirestore(snapshot: QueryDocumentSnapshot): Message {
         const data = snapshot.data();
+        const finalCreatedAt = data.createdAt ?? new Date().toISOString();
         return {
           id: snapshot.id,
-          createdAt: data.createdAt?.toDate().toISOString(),
-          updatedAt: data.updatedAt.toDate().toISOString(),
+          createdAt: finalCreatedAt,
+          updatedAt: data.updatedAt ?? finalCreatedAt,
           userId: data.userId,
           content: data.content,
         };

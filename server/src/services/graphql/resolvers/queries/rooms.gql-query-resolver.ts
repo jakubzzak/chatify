@@ -1,23 +1,68 @@
 import { User } from '@core/decorators/user.decorator';
-import { Room } from '@core/types';
+import { RoomService } from '@domains/room/room.service';
 import { UserEntity } from '@domains/user/types';
-import { Args, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
+import {
+  BadRequestException,
+  ConflictException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  Args,
+  Mutation,
+  Parent,
+  Query,
+  ResolveField,
+  Resolver,
+} from '@nestjs/graphql';
 import { ListRoomsArgs } from '@services/graphql/args/list-rooms.args';
+import { CreateRoomInput } from '@services/graphql/inputs/create-room.input';
+import { JoinRoomInput } from '@services/graphql/inputs/join-room.input';
+import { UpdateRoomInput } from '@services/graphql/inputs/update-room.input';
 import { UserModel } from '@services/graphql/models';
+import { MessageModel } from '@services/graphql/models/message.model';
 import { RoomModel } from '@services/graphql/models/room.model';
-import { FieldPath, QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import { mapMessageResponse } from '@services/graphql/res/message.res';
+import { mapRoomResponse } from '@services/graphql/res/room.res';
+import { mapUserResponse } from '@services/graphql/res/user.res';
+import { FieldPath } from 'firebase-admin/firestore';
 import { FirebaseService } from 'src/services/firebase/firebase.service';
-import { FirebaseCollections } from 'src/services/firebase/types';
+import {
+  FirebaseCollections,
+  FirebaseRoomSubCollections,
+} from 'src/services/firebase/types';
 
 @Resolver(() => RoomModel)
 export class RoomsGqlQueryResolver {
-  constructor(private readonly firebaseService: FirebaseService) {}
+  private readonly logger = new Logger(RoomsGqlQueryResolver.name);
+
+  constructor(
+    private readonly firebaseService: FirebaseService,
+    private readonly roomService: RoomService,
+  ) {}
+
+  @Query(() => RoomModel)
+  async getRoom(@User() user: UserEntity, @Args('roomId') roomId: string) {
+    if (!user.rooms.includes(roomId)) {
+      throw new ConflictException(`not a member of Room<${roomId}>`);
+    }
+
+    const roomDoc = await this.firebaseService
+      .getDBClient()
+      .collection(FirebaseCollections.Rooms)
+      .withConverter(this.firebaseService.roomConverter())
+      .doc(roomId)
+      .get();
+
+    if (!roomDoc.exists) {
+      throw new NotFoundException(`Room<${roomId}> not found`);
+    }
+
+    return mapRoomResponse(roomDoc);
+  }
 
   @Query(() => [RoomModel])
-  async rooms(
-    @User() user: UserEntity,
-    @Args() args: ListRoomsArgs,
-  ): Promise<RoomModel[]> {
+  async listRooms(@User() user: UserEntity, @Args() args: ListRoomsArgs) {
     if (args.type === 'member') {
       const roomDocs = await this.firebaseService
         .getDBClient()
@@ -27,7 +72,7 @@ export class RoomsGqlQueryResolver {
         .orderBy('name')
         .get();
 
-      return roomDocs.docs.map(this.mapRoomResponse);
+      return roomDocs.docs.map(mapRoomResponse);
     }
 
     if (args.type === 'not_member') {
@@ -40,7 +85,7 @@ export class RoomsGqlQueryResolver {
         .orderBy('name')
         .get();
 
-      return roomDocs.docs.map(this.mapRoomResponse);
+      return roomDocs.docs.map(mapRoomResponse);
     }
 
     const roomDocs = await this.firebaseService
@@ -51,30 +96,148 @@ export class RoomsGqlQueryResolver {
       .orderBy('name')
       .get();
 
-    return roomDocs.docs.map(this.mapRoomResponse);
+    return roomDocs.docs.map(mapRoomResponse);
+  }
+
+  @Mutation(() => RoomModel)
+  async createRoom(
+    @User() user: UserEntity,
+    @Args('createRoomInput') createRoomInput: CreateRoomInput,
+  ) {
+    const now = new Date().toDateString();
+    const roomRef = await this.firebaseService
+      .getDBClient()
+      .collection(FirebaseCollections.Rooms)
+      .withConverter(this.firebaseService.roomConverter())
+      .add({
+        createdAt: now,
+        updatedAt: now,
+        name: createRoomInput.name,
+        admin: this.firebaseService
+          .getDBClient()
+          .collection(FirebaseCollections.Users)
+          .doc(user.id),
+        code: createRoomInput.isPersistent
+          ? this.roomService.generateRoomCode()
+          : null,
+        members: [user.id],
+        isPersistent: createRoomInput.isPersistent,
+      });
+
+    const roomDoc = await roomRef.get();
+    return mapRoomResponse(roomDoc);
+  }
+
+  @Mutation(() => RoomModel)
+  async updateRoom(
+    @User() user: UserEntity,
+    @Args('roomId') roomId: string,
+    @Args('updateRoomInput') updateRoomInput: UpdateRoomInput,
+  ) {
+    if (!user.rooms.includes(roomId)) {
+      throw new ConflictException(`not a member of Room<${roomId}>`);
+    }
+
+    if (Object.keys(updateRoomInput).length === 0) {
+      throw new BadRequestException('input is empty');
+    }
+
+    const roomRef = this.firebaseService
+      .getDBClient()
+      .collection(FirebaseCollections.Rooms)
+      .withConverter(this.firebaseService.roomConverter())
+      .doc(roomId);
+
+    const roomDoc = await roomRef.get();
+    if (!roomDoc.exists) {
+      throw new NotFoundException(`Room<${roomId}> not found`);
+    }
+    if (roomDoc.data().admin !== user.id) {
+      throw new ConflictException(`not an admin of Room<${roomId}>`);
+    }
+
+    await roomRef.update({
+      ...updateRoomInput,
+      updatedAt: new Date().toISOString(),
+    });
+
+    return mapRoomResponse(roomDoc);
+  }
+
+  @Mutation(() => RoomModel)
+  async joinRoom(
+    @User() user: UserEntity,
+    @Args('joinRoomInput') joinRoomInput: JoinRoomInput,
+  ) {
+    if (!joinRoomInput.roomId && !joinRoomInput.code) {
+      throw new BadRequestException(
+        "'roomId' or 'code' body param is required",
+      );
+    }
+
+    if (joinRoomInput.roomId) {
+      if (user.rooms?.includes(joinRoomInput.roomId)) {
+        throw new ConflictException(
+          `already a member of Room<${joinRoomInput.roomId}>`,
+        );
+      }
+
+      const publicRoomDoc = await this.roomService.joinPublicRoom(
+        user,
+        joinRoomInput.roomId,
+      );
+      return mapRoomResponse(publicRoomDoc);
+    }
+
+    const privateRoomDoc = await this.roomService.joinPrivateRoom(
+      user,
+      joinRoomInput.code,
+    );
+    return mapRoomResponse(privateRoomDoc);
   }
 
   @ResolveField(() => [UserModel])
-  async members(@Parent() room: RoomModel): Promise<UserModel[]> {
+  async members(@Parent() room: RoomModel) {
     const users = await this.firebaseService
       .getDBClient()
       .collection(FirebaseCollections.Users)
-      .where('uid', 'in', room.members)
+      .withConverter(this.firebaseService.userConverter())
+      .where(FieldPath.documentId(), 'in', room.members)
       .get();
 
-    return users.docs as unknown as UserModel[];
+    return users.docs.map(mapUserResponse);
   }
 
-  private mapRoomResponse = (
-    roomDoc: QueryDocumentSnapshot<Omit<Room, 'id'>>,
-  ) => {
-    const { code, ...data } = roomDoc.data();
-    return {
-      id: roomDoc.id,
-      isPrivate: !!code,
-      ...data,
-      createdAt: data.createdAt ?? roomDoc.createTime.toDate().toISOString(),
-      members: data.members as unknown as UserModel[],
-    };
-  };
+  @ResolveField(() => [MessageModel])
+  async messages(@Parent() room: RoomModel) {
+    const messageDocs = await this.firebaseService
+      .getDBClient()
+      .collection(FirebaseCollections.Rooms)
+      .doc(room.id)
+      .collection(FirebaseRoomSubCollections.Messages)
+      .withConverter(this.firebaseService.messageConverter())
+      .orderBy('createdAt')
+      .get();
+
+    return messageDocs.docs.map(mapMessageResponse);
+  }
+
+  @ResolveField(() => MessageModel)
+  async lastMessage(@Parent() room: RoomModel) {
+    const messageDocs = await this.firebaseService
+      .getDBClient()
+      .collection(FirebaseCollections.Rooms)
+      .doc(room.id)
+      .collection(FirebaseRoomSubCollections.Messages)
+      .withConverter(this.firebaseService.messageConverter())
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+
+    if (messageDocs.docs.length === 0) {
+      return null;
+    }
+
+    return mapMessageResponse(messageDocs.docs[0]);
+  }
 }
