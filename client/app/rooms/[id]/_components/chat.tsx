@@ -113,7 +113,7 @@ export function Chat() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 pt-4">
-            <Rooms className="h-[calc(100vh-1rem)] border-0" />
+            <Rooms className="h-[calc(100vh-1rem)] pt-6 border-0" />
           </SheetContent>
         </Sheet>
       </CardHeader>
