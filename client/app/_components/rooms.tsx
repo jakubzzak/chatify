@@ -1,6 +1,5 @@
 'use client';
 
-import { useAuth } from '@/app/_providers/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DateFormat } from '@/app/_providers/intl/date-format';
@@ -13,14 +12,44 @@ import { JoinRoomForm } from '@/app/rooms/_components/join-room-form';
 import { LogIn, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { gql, useQuery } from '@apollo/client';
+import { Loader } from '@/components/ui/loader';
+import { useState } from 'react';
+
+type Room = {
+  id: string;
+  name: string;
+  createdAt: string;
+  lastMessage: {
+    content: string;
+    user: {
+      username: string;
+    };
+  } | null;
+};
 
 export function Rooms({ className }: { className?: string }) {
-  const { user } = useAuth();
+  const { loading, error, data } = useQuery<{ listRooms: Room[] }>(gql`
+    query ListRooms {
+      listRooms(type: "member") {
+        id
+        name
+        createdAt
+        lastMessage {
+          content
+          user {
+            username
+          }
+        }
+      }
+    }
+  `);
+  const [value, setValue] = useState('');
 
   return (
     <Card
       className={cn(
-        'flex flex-col p-6 w-full md:w-[21rem] bg-background h-[calc(100vh-5.5rem)]',
+        'flex flex-col p-2 w-full md:w-[21rem] bg-background h-[calc(100vh-5.5rem)]',
         className,
       )}>
       <CardHeader className="p-0 pb-6 space-y-2">
@@ -41,27 +70,73 @@ export function Rooms({ className }: { className?: string }) {
             </JoinRoomForm>
           </div>
         </div>
-        <Input onChange={() => {}} placeholder="common.search" />
+        <Input
+          onChange={(value) => setValue(value)}
+          placeholder="common.search"
+        />
       </CardHeader>
-      <div className="flex flex-col overflow-y-auto space-y-4">
-        {user.rooms.map((room) => (
-          <Link key={room.id} href={`/rooms/${room.id}`}>
-            <Card>
-              <CardContent className="flex gap-6 pt-4 relative">
-                <Avatar className="w-16 h-16">
-                  <AvatarImage src="https://github.com/shadcn.png" />
-                  <AvatarFallback>CN</AvatarFallback>
-                </Avatar>
-                <div>
-                  <CardTitle>{room.name}</CardTitle>
-                  <Badge className="absolute bottom-6 right-6">
-                    <DateFormat value={room.createdAt} timeStyle={undefined} />
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+      <div
+        className={cn(
+          'flex w-full items-center flex-col space-y-2',
+          !loading && 'overflow-auto',
+        )}>
+        {loading ? (
+          <Loader />
+        ) : !error ? (
+          data.listRooms
+            .filter((room) => {
+              if (value === '') return true;
+
+              let result = room.name
+                .toLowerCase()
+                .match(`.*${value.toLowerCase().split('').join('.*')}.*`);
+
+              return !!result;
+            })
+            .map((room) => (
+              <Link key={room.id} href={`/rooms/${room.id}`} className="w-full">
+                <Card className="relative">
+                  {room?.lastMessage && (
+                    <Badge
+                      variant="secondary"
+                      className="absolute top-0 py-0 px-1 right-0 rounded-tl-none rounded-br-none rounded-tr-md rounded-bl-md">
+                      <DateFormat value={room.createdAt} />
+                    </Badge>
+                  )}
+                  <CardHeader className="p-2">
+                    <CardTitle className="text-sm">{room.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex gap-2 pt-0 pb-2 px-2 relative">
+                    <div className="flex flex-col space-y-1 items-center">
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src="https://github.com/shadcn.png" />
+                        <AvatarFallback>CF</AvatarFallback>
+                      </Avatar>
+                    </div>
+                    {room?.lastMessage ? (
+                      <div className=" flex-grow overflow-hidden justify-start text-xs w-full flex flex-col space-y-1">
+                        <div className="flex">
+                          <Badge
+                            variant="default"
+                            className="text-xs rounded-md py-0 px-1">
+                            {room.lastMessage.user.username}
+                          </Badge>
+                        </div>
+
+                        <p className="truncate">{room?.lastMessage.content}</p>
+                      </div>
+                    ) : (
+                      <div className="flex justify-center items-center flex-grow text-muted-foreground">
+                        <Message value="rooms.noConversation" />
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
+            ))
+        ) : (
+          <></>
+        )}
       </div>
     </Card>
   );
