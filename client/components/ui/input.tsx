@@ -30,41 +30,35 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     },
     ref,
   ) => {
-    let [_value, _onChange] = useState(value);
+    const [localValue, setLocalValue] = useState(value);
     const t = useMessage();
 
     useEffect(() => {
-      if (!nativeOnChange) _onChange(value);
+      setLocalValue(value);
     }, [value]);
 
     useEffect(() => {
-      if (value === _value) return;
+      if (localValue === value) return; // Skip if unchanged
 
-      if (
-        _value == undefined ||
-        (typeof _value === 'string' && _value.length < 1)
-      ) {
-        onChange(_value);
-        return;
-      }
+      const delay = setTimeout(() => onChange(localValue), timeout);
+      return () => clearTimeout(delay);
+    }, [localValue]);
 
-      const _timeout = setTimeout(() => onChange(_value), timeout);
-
-      return () => clearTimeout(_timeout);
-    }, [_value]);
-
-    function handleOnChange(event) {
+    const handleOnChange = (event) => {
       if (nativeOnChange) onChange(event);
-      else if (type === 'number')
-        _onChange(
-          event.target.value.length > 0 ? Number(event.target.value) : null,
-        );
-      else _onChange(event.target.value);
-    }
+      else {
+        const newValue =
+          type === 'number'
+            ? Number(event.target.value) || null
+            : event.target.value;
+        setLocalValue(newValue);
+      }
+    };
 
     return (
       <input
         type={type}
+        value={localValue}
         placeholder={placeholder ? t(placeholder) : ''}
         onChange={handleOnChange}
         className={cn(
