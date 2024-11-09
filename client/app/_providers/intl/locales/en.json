@@ -43,6 +43,7 @@
   "navbar.link.chat": "Chat",
   "navbar.link.home": "Home",
   "navbar.signOut": "Sign out",
+  "rooms.noConversation": "No conversation",
   "signIn.google": "Sign in with Google",
   "theme.dark": "Dark",
   "theme.light": "Light",
