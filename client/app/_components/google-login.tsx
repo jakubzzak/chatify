@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSessionStorage } from '@/lib/hooks/use-session-storage';
+import { setCookie } from '@/app/_components/api';
 
 export function GoogleLogin() {
   const [loading, setLoading] = useState(false);
@@ -19,9 +20,16 @@ export function GoogleLogin() {
     const provider = new GoogleAuthProvider();
     setLoading(true);
 
-    return signInWithPopup(auth, provider)
+    await signInWithPopup(auth, provider)
       .then(async (res) => {
         const result = await res.user.getIdTokenResult();
+
+        await setCookie('token', result.token, {
+          expires: new Date(result.expirationTime),
+          httpOnly: true,
+          secure: true,
+          sameSite: 'none',
+        });
         setToken(result.token);
         router.push('/rooms');
       })
