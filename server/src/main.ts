@@ -4,13 +4,21 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as os from 'os';
 import { AppModule } from './app.module';
 import { LoggerMiddleware } from './core/middlewares/logger';
+import * as process from 'node:process';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const logger = new Logger('bootstrap');
 
-  const app = await NestFactory.create(AppModule, { cors: true });
+  const app = await NestFactory.create(AppModule);
+
+  app.enableCors({
+    origin: process.env.ALLOWED_ORIGINS.split(','),
+    credentials: true,
+  });
   app.use(new LoggerMiddleware().use);
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  app.use(cookieParser());
 
   const config = new DocumentBuilder()
     .setTitle('Chatify')
