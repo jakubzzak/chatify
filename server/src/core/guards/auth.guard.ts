@@ -26,6 +26,8 @@ export class AuthGuard implements CanActivate {
     }
 
     let request = context.switchToHttp().getRequest();
+    // console.log(request?.cookies.token, 'dddddddddddddddd');
+
     if (context.getType().toString() === 'graphql') {
       request = GqlExecutionContext.create(context).getContext().req;
     }
@@ -48,7 +50,6 @@ export class AuthGuard implements CanActivate {
 
   private extractTokenFromHeader(request: Request): string | undefined {
     const [type, token] = request.headers?.['authorization']?.split(' ') ?? [];
-    console.log(request.headers);
     return type === 'Bearer' ? token : undefined;
   }
 }
