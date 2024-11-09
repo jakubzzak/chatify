@@ -33,7 +33,7 @@ type Message = {
 type MetaEvent = { userId: string; username: string; type: string };
 
 export function Chat() {
-  const [message, setMessage] = useState(null);
+  const [message, setMessage] = useState('');
   const messageRef = useRef<HTMLInputElement>(null);
   const [typingUser, setTypingUser] = useState<MetaEvent>(null);
   const params = useParams();
@@ -131,18 +131,20 @@ export function Chat() {
                   'w-10/12',
                   message.userId === user.id ? 'bg-accent' : 'bg-muted',
                 )}>
-                <CardHeader className="p-2 font-semibold">
+                <CardHeader className="p-0 pb-2 font-semibold">
                   <div className="flex justify-between">
-                    <Badge>
+                    <Badge className="py-0 text-xs rounded-bl-none rounded-br-md rounded-tr-none rounded-tl-md">
                       {message.userId === user.id ? (
                         <Message value="common.me" />
                       ) : (
                         message.username
                       )}
                     </Badge>
-                    <div className="text-xs">
+                    <Badge
+                      variant="secondary"
+                      className="px-1 py-0 right-0 rounded-tl-none rounded-br-none rounded-tr-md rounded-bl-md">
                       <DateFormat value={message.createdAt} />
-                    </div>
+                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="flex flex-col p-2">
