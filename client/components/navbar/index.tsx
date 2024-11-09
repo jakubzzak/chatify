@@ -11,7 +11,7 @@ export function Navbar({ variant }: { variant: 'private' | 'public' }) {
   const links = variant === 'public' ? publicLinks : privateLinks;
 
   return (
-    <header className="w-full h-[3.5rem] flex flex-row items-center justify-between gap-x-4 px-2 sm:px-6 backdrop-blur-md fixed top-0 right-0 z-10 border-b">
+    <header className="w-full h-[3.5rem] flex flex-row items-center justify-between gap-x-4 px-2 sm:px-6 backdrop-blur-md z-10 border-b">
       <div className="flex flex-row gap-x-2">
         {variant === 'private' && <UserProfile />}
         {links.map(({ key, href, icon: Icon }) => (
