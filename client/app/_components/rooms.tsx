@@ -9,12 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Message } from '@/app/_providers/intl/message';
 import { CreateRoomForm } from '@/app/rooms/_components/create-room-form';
 import { JoinRoomForm } from '@/app/rooms/_components/join-room-form';
-import { LogIn, Plus } from 'lucide-react';
+import { LogIn, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { gql, useQuery } from '@apollo/client';
 import { Loader } from '@/components/ui/loader';
-import { useState } from 'react';
+import { useQueryParam } from '@/lib/hooks/use-query-param';
 
 type Room = {
   id: string;
@@ -44,7 +44,7 @@ export function Rooms({ className }: { className?: string }) {
       }
     }
   `);
-  const [value, setValue] = useState('');
+  const { update, state } = useQueryParam('search', '');
 
   return (
     <Card
@@ -52,7 +52,7 @@ export function Rooms({ className }: { className?: string }) {
         'flex flex-col p-2 w-full md:w-[21rem] bg-background h-[calc(100vh-5.5rem)]',
         className,
       )}>
-      <CardHeader className="p-0 pb-6 space-y-2">
+      <CardHeader className="p-0 pb-4 space-y-2">
         <div className="flex flex-row items-center justify-between gap-2">
           <h2 className="text-2xl">
             <Message value="common.chats" />
@@ -70,10 +70,22 @@ export function Rooms({ className }: { className?: string }) {
             </JoinRoomForm>
           </div>
         </div>
-        <Input
-          onChange={(value) => setValue(value)}
-          placeholder="common.search"
-        />
+        <div className="relative">
+          <Input
+            onChange={(_value) => update(_value.trim())}
+            placeholder="common.search"
+            value={state}
+            className={state.trim() !== '' && 'pr-10'}
+          />
+          {state.trim() !== '' && (
+            <Button
+              onClick={() => update('')}
+              variant="ghost"
+              className="p-2 h-8 transform top-1/2 -translate-y-1/2 absolute right-1">
+              <X />
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <div
         className={cn(
@@ -85,11 +97,13 @@ export function Rooms({ className }: { className?: string }) {
         ) : !error ? (
           data.listRooms
             .filter((room) => {
-              if (value === '') return true;
+              if (state.trim() === '') return true;
 
               let result = room.name
                 .toLowerCase()
-                .match(`.*${value.toLowerCase().split('').join('.*')}.*`);
+                .match(
+                  `.*${state.trim().toLowerCase().split('').join('.*')}.*`,
+                );
 
               return !!result;
             })
