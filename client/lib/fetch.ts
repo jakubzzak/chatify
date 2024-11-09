@@ -52,6 +52,7 @@ export async function fetchApi(url: string, init?: RequestProps) {
   }
 
   return fetch(process.env.NEXT_PUBLIC_BACKEND_URL + '/api' + url, {
+    credentials: init?.credentials ? init.credentials : 'include',
     headers,
     ...(init || {}),
   }).then(async (response) => {
@@ -94,6 +95,7 @@ export const fetcherApi: FetcherApi =
         ? subPath
         : process.env.NEXT_PUBLIC_BACKEND_URL + '/api' + subPath,
       {
+        credentials: options?.credentials ? options.credentials : 'include',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
