@@ -6,6 +6,10 @@
   "contributors": [],
   "private": true,
   "license": "UNLICENSED",
+  "engines": {
+    "node": "18.18.2",
+    "npm": "9.8.1"
+  },
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -19,7 +23,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "auth:local": "npx ts-node ./src/services/firebase/scripts/get-firebase-access-token.ts"
+    "auth:local": "npx ts-node ./src/services/firebase/scripts/get-firebase-access-token.ts",
+    "secret:base64": "npx ts-node ./src/services/firebase/scripts/base64-encode.ts"
   },
   "dependencies": {
     "@apollo/server": "^4.11.0",

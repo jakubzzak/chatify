@@ -11,6 +11,10 @@ export type Room = {
   code: string | null;
   isPersistent: boolean;
   members: string[];
+  encryption: {
+    publicKey: string;
+    privateKey: string;
+  };
 };
 
 export type User = {

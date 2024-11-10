@@ -1,0 +1,36 @@
+name: chatify
+services:
+  app-server:
+    build:
+      context: ./server
+    container_name: chatify-server
+    ports:
+      - 5001:5001
+    restart: always
+    env_file: ./server/.env
+    environment:
+      NODE_ENV: production
+      PORT: 5001
+    healthcheck:
+      test: curl --fail http://localhost:5001/api/ping
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+
+  app-client:
+    build:
+      context: ./client
+    container_name: chatify-client
+    ports:
+      - 3000:3000
+    restart: always
+    env_file: ./client/.env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+      NEXT_PUBLIC_BACKEND_URL: http://localhost:5001
+    # depends_on:
+    #   app-server:
+    #     condition: service_healthy

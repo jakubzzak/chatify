@@ -23,7 +23,9 @@ export class FirebaseService {
     const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_OBJECT;
 
     this.client = admin.initializeApp({
-      credential: admin.credential.cert(JSON.parse(serviceAccount ?? '{}')),
+      credential: admin.credential.cert(
+        JSON.parse(Buffer.from(serviceAccount, 'base64').toString('ascii')),
+      ),
     });
   }
 
@@ -122,6 +124,7 @@ export class FirebaseService {
           code: data.code,
           isPersistent: data.isPersistent,
           members: data.members,
+          encryption: data.encryption,
         };
       },
     };

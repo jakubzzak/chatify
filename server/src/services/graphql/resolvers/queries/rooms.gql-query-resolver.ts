@@ -26,6 +26,7 @@ import { mapMessageResponse } from '@services/graphql/res/message.res';
 import { mapRoomResponse } from '@services/graphql/res/room.res';
 import { mapUserResponse } from '@services/graphql/res/user.res';
 import { FieldPath } from 'firebase-admin/firestore';
+import * as crypto from 'node:crypto';
 import { FirebaseService } from 'src/services/firebase/firebase.service';
 import {
   FirebaseCollections,
@@ -104,6 +105,34 @@ export class RoomsGqlQueryResolver {
     @User() user: UserEntity,
     @Args('createRoomInput') createRoomInput: CreateRoomInput,
   ) {
+    const { publicKey, privateKey } = await crypto.subtle.generateKey(
+      {
+        name: 'RSA-OAEP',
+        modulusLength: 2048, // can be 1024, 2048, or 4096
+        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+        hash: { name: 'SHA-256' }, // can be "SHA-1", "SHA-256", "SHA-384", or "SHA-512"
+      },
+      true, // whether the key is extractable (i.e. can be used in exportKey)
+      ['encrypt', 'decrypt'], // can be any combination of "encrypt" and "decrypt"
+    );
+    console.log(publicKey, privateKey);
+
+    console.log('encrypting..');
+    const encBuff = await crypto.subtle.encrypt(
+      { name: 'RSA-OAEP' },
+      publicKey,
+      Buffer.from('sending over some message'),
+    );
+    console.log('encrypted: ', encBuff);
+
+    console.log('decrypting..');
+    const decBuff = await crypto.subtle.decrypt(
+      { name: 'RSA-OAEP' },
+      privateKey,
+      encBuff,
+    );
+    console.log('decrypted: ', new TextDecoder().decode(decBuff));
+
     const now = new Date().toDateString();
     const roomRef = await this.firebaseService
       .getDBClient()
@@ -122,6 +151,10 @@ export class RoomsGqlQueryResolver {
           : null,
         members: [user.id],
         isPersistent: createRoomInput.isPersistent,
+        encryption: {
+          privateKey: privateKey as unknown as string,
+          publicKey: publicKey as unknown as string,
+        },
       });
 
     const roomDoc = await roomRef.get();

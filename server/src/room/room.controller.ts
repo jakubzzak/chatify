@@ -242,6 +242,10 @@ export class RoomController {
             code: body.isPrivate ? this.roomService.generateRoomCode() : null,
             isPersistent: body.isPersistent === true,
             members: [userId],
+            encryption: {
+              privateKey: '',
+              publicKey: '',
+            },
           });
 
         trx.update(userRef, {

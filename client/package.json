@@ -7,7 +7,7 @@
     "start:local": "next dev --experimental-https",
     "start:dev": "dotenv -e ./.env.local -- bash -c 'PORT=$PORT next dev -H $HOST --experimental-https'",
     "build": "next build",
-    "start:prod": "next start",
+    "start:prod": "dotenv -e ./.env -- sh -c 'PORT=$PORT next start -H $HOST'",
     "lint": "next lint",
     "format": "prettier --write \"app/**/*.{ts,tsx}\" \"components/**/*.{ts,tsx}\" \"lib/**/*.{ts,tsx}\" \"public/**/*.{ts,tsx}\""
   },
