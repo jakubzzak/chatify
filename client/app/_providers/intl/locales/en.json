@@ -5,6 +5,7 @@
   "chatRoom.conversation.temporary": "Temporary",
   "chatRoom.createNew": "Create room",
   "chatRoom.joinExisting": "Join room",
+  "chatRoom.members": "Members",
   "chatRoom.name": "Room name",
   "chatRoom.roomType": "Typ miestnosti",
   "chatRoom.roomType.private": "Private",
