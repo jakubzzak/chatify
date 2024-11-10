@@ -1,6 +1,6 @@
 'use client';
 
-import { gql, useQuery } from '@apollo/client';
+import { useQuery } from '@apollo/client';
 import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -9,6 +9,7 @@ import { DateFormat } from '@/app/_providers/intl/date-format';
 import { useAuth } from '@/app/_providers/auth';
 import { Message } from '@/app/_providers/intl/message';
 import { Loader } from '@/components/ui/loader';
+import { GET_ROOM_MESSAGES } from '@/app/_providers/graphql/queries';
 
 type Messages = {
   messages: {
@@ -26,21 +27,7 @@ export function Messages() {
   const params = useParams();
   const { user } = useAuth();
   const { loading, error, data } = useQuery<{ getRoom: Messages }>(
-    gql`
-      query ($roomId: String!) {
-        getRoom(roomId: $roomId) {
-          messages {
-            id
-            createdAt
-            content
-            user {
-              id
-              username
-            }
-          }
-        }
-      }
-    `,
+    GET_ROOM_MESSAGES,
     { variables: { roomId: params.id } },
   );
 

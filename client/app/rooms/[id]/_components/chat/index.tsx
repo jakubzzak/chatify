@@ -13,21 +13,16 @@ import { AlignJustify, SendHorizontal } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { TypeWriter } from '@/components/ui/type-writer';
 import { useParams, useRouter } from 'next/navigation';
-import Loading from '@/app/loading';
-import { Message } from '@/app/_providers/intl/message';
 import { useAuth } from '@/app/_providers/auth';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Rooms } from '@/app/_components/rooms';
-import { gql, useQuery } from '@apollo/client';
+import { useQuery } from '@apollo/client';
 import { MembersDropdown } from '@/app/rooms/[id]/_components/chat/members-dropdown';
 import { Messages } from '@/app/rooms/[id]/_components/chat/messages';
+import { GET_ROOM, GET_ROOM_MESSAGES } from '@/app/_providers/graphql/queries';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useGraphql } from '@/app/_providers/graphql';
 
-type Message = {
-  message: string;
-  userId: string;
-  username: string;
-  createdAt: string;
-};
 type MetaEvent = { userId: string; username: string; type: string };
 
 type Room = {
@@ -43,16 +38,10 @@ export function Chat() {
   const { socket, user } = useAuth();
   const router = useRouter();
   const { loading, error, data, refetch } = useQuery<{ getRoom: Room }>(
-    gql`
-      query ($roomId: String!) {
-        getRoom(roomId: $roomId) {
-          id
-          name
-        }
-      }
-    `,
+    GET_ROOM,
     { variables: { roomId: params.id } },
   );
+  const { client } = useGraphql();
 
   useEffect(() => {
     return () => {
@@ -73,8 +62,8 @@ export function Chat() {
         router.push('/room');
       });
 
-      socket.on('message', (response: Message) => {
-        refetch();
+      socket.on('message', () => {
+        client.refetchQueries({ include: [GET_ROOM_MESSAGES] });
       });
       socket.on('meta', (response) => {
         if (response?.type === 'typing_start') {
@@ -109,15 +98,17 @@ export function Chat() {
     }
   };
 
-  if (loading) {
-    return <Loading />;
-  }
-
   return (
     <Card className="flex flex-col h-[calc(100vh-5.5rem)] flex-grow">
       <CardHeader className="space-y-0 flex p-2 flex-row flex-wrap items-center justify-between relative">
         <CardTitle className="text-lg sm:text-2xl">
-          {data.getRoom.name}
+          {loading ? (
+            <Skeleton className="h-8 w-34" />
+          ) : !error ? (
+            data.getRoom.name
+          ) : (
+            <></>
+          )}
         </CardTitle>
 
         <div className="space-x-2">

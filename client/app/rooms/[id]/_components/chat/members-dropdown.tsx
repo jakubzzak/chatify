@@ -10,12 +10,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { UsersRound } from 'lucide-react';
-import { gql, useQuery } from '@apollo/client';
+import { useQuery } from '@apollo/client';
 import { useParams } from 'next/navigation';
 import { Loader } from '@/components/ui/loader';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Message } from '@/app/_providers/intl/message';
+import { useGraphql } from '@/app/_providers/graphql';
+import { GET_ROOM_MEMBERS } from '@/app/_providers/graphql/queries';
 
 type Members = {
   members: {
@@ -27,20 +29,14 @@ type Members = {
 
 export function MembersDropdown() {
   const params = useParams();
-  const { loading, error, data } = useQuery<{ getRoom: Members }>(
-    gql`
-      query ($roomId: String!) {
-        getRoom(roomId: $roomId) {
-          members {
-            username
-            id
-            pictureUrl
-          }
-        }
-      }
-    `,
+  const { loading, error, data, refetch } = useQuery<{ getRoom: Members }>(
+    GET_ROOM_MEMBERS,
     { variables: { roomId: params.id } },
   );
+
+  const { client } = useGraphql();
+
+  client.refetchQueries({});
 
   return (
     <DropdownMenu>
