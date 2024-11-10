@@ -11,18 +11,16 @@ import {
 import { Input } from '@/components/ui/input';
 import { AlignJustify, SendHorizontal } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 import { TypeWriter } from '@/components/ui/type-writer';
-import { DateFormat } from '@/app/_providers/intl/date-format';
-import { useFetch } from '@/lib/hooks/use-fetch';
 import { useParams, useRouter } from 'next/navigation';
 import Loading from '@/app/loading';
 import { Message } from '@/app/_providers/intl/message';
 import { useAuth } from '@/app/_providers/auth';
-import { Room } from '@/app/rooms/_components/schema';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Rooms } from '@/app/_components/rooms';
+import { gql, useQuery } from '@apollo/client';
+import { MembersDropdown } from '@/app/rooms/[id]/_components/chat/members-dropdown';
+import { Messages } from '@/app/rooms/[id]/_components/chat/messages';
 
 type Message = {
   message: string;
@@ -32,14 +30,29 @@ type Message = {
 };
 type MetaEvent = { userId: string; username: string; type: string };
 
+type Room = {
+  id: string;
+  name: string;
+};
+
 export function Chat() {
   const [message, setMessage] = useState('');
   const messageRef = useRef<HTMLInputElement>(null);
   const [typingUser, setTypingUser] = useState<MetaEvent>(null);
   const params = useParams();
-  const { data, loading, mutate } = useFetch<Room>(`/rooms/${params.id}`);
   const { socket, user } = useAuth();
   const router = useRouter();
+  const { loading, error, data, refetch } = useQuery<{ getRoom: Room }>(
+    gql`
+      query ($roomId: String!) {
+        getRoom(roomId: $roomId) {
+          id
+          name
+        }
+      }
+    `,
+    { variables: { roomId: params.id } },
+  );
 
   useEffect(() => {
     return () => {
@@ -61,7 +74,7 @@ export function Chat() {
       });
 
       socket.on('message', (response: Message) => {
-        mutate();
+        refetch();
       });
       socket.on('meta', (response) => {
         if (response?.type === 'typing_start') {
@@ -102,62 +115,31 @@ export function Chat() {
 
   return (
     <Card className="flex flex-col h-[calc(100vh-5.5rem)] flex-grow">
-      <CardHeader className="flex flex-row items-center relative">
-        <CardTitle>{data.name}</CardTitle>
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button
-              size="icon"
-              className="absolute md:hidden right-6 top-[0.75rem]">
-              <AlignJustify />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0 pt-4">
-            <Rooms className="h-[calc(100vh-1rem)] pt-6 border-0" />
-          </SheetContent>
-        </Sheet>
+      <CardHeader className="space-y-0 flex p-2 flex-row flex-wrap items-center justify-between relative">
+        <CardTitle className="text-lg sm:text-2xl">
+          {data.getRoom.name}
+        </CardTitle>
+
+        <div className="space-x-2">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button size="icon" className="md:hidden">
+                <AlignJustify />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="p-0 pt-4">
+              <Rooms className="h-[calc(100vh-1rem)] pt-6 border-0" />
+            </SheetContent>
+          </Sheet>
+          <MembersDropdown />
+        </div>
       </CardHeader>
-      <CardContent className="flex h-[calc(100vh-14.5rem)] w-full">
-        <Card className="flex-grow overflow-y-auto p-2 space-y-4">
-          {data.messages.map((message, index) => (
-            <div
-              key={index}
-              className={cn(
-                'flex',
-                message.userId === user.id ? 'justify-end' : 'justify-start',
-              )}>
-              <Card
-                className={cn(
-                  'w-10/12',
-                  message.userId === user.id ? 'bg-accent' : 'bg-muted',
-                )}>
-                <CardHeader className="p-0 pb-2 font-semibold">
-                  <div className="flex justify-between">
-                    <Badge className="py-0 text-xs rounded-bl-none rounded-br-md rounded-tr-none rounded-tl-md">
-                      {message.userId === user.id ? (
-                        <Message value="common.me" />
-                      ) : (
-                        message.username
-                      )}
-                    </Badge>
-                    <Badge
-                      variant="secondary"
-                      className="px-1 py-0 right-0 rounded-tl-none rounded-br-none rounded-tr-md rounded-bl-md">
-                      <DateFormat value={message.createdAt} />
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex flex-col p-2">
-                  <p className="text-xs">{message.content}</p>
-                </CardContent>
-              </Card>
-            </div>
-          ))}
-        </Card>
+      <CardContent className="flex pb-2 px-2 h-[calc(100vh-13rem)] w-full">
+        <Messages />
       </CardContent>
-      <CardFooter className="gap-2 w-full relative">
+      <CardFooter className="pb-2 pt-4 px-2 gap-2 w-full relative">
         {typingUser && (
-          <div className="flex gap-2 absolute -top-5 items-center pl-2">
+          <div className="flex gap-1 absolute -top-[0.2rem] items-center pl-2">
             <p className="text-xs leading-4">{typingUser.username}</p>
             <p className="text-lg leading-4">
               <TypeWriter
