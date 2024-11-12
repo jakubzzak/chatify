@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
+import * as dotenv from 'dotenv';
 import 'source-map-support/register';
 import { InfraStack } from '../lib/infra-stack';
+
+dotenv.config({ path: '.env', debug: true });
 
 const app = new cdk.App();
 new InfraStack(app, 'InfraStack', {
@@ -10,8 +13,8 @@ new InfraStack(app, 'InfraStack', {
     app: 'chatify',
   },
   env: {
-    account: '641906578304',
-    region: 'eu-central-1',
+    account: process.env.AWS_ACCOUNT_ID,
+    region: process.env.AWS_REGION,
   },
   /* If you don't specify 'env', this stack will be environment-agnostic.
    * Account/Region-dependent features and context lookups will not work,

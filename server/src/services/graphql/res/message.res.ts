@@ -9,7 +9,6 @@ export const mapMessageResponse = (
     | QueryDocumentSnapshot<Omit<Message, 'id'>>
     | DocumentSnapshot<Omit<Message, 'id'>>,
 ) => {
-  console.log('message.map', messageDoc.data());
   return {
     id: messageDoc.id,
     createdAt: messageDoc.createTime.toDate().toISOString(),
