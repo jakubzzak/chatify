@@ -2,12 +2,12 @@
 import * as cdk from 'aws-cdk-lib';
 import * as dotenv from 'dotenv';
 import 'source-map-support/register';
-import { InfraStack } from '../lib/infra-stack';
+import { ChatifyStack } from '../lib/chatify-stack';
 
 dotenv.config({ path: '.env', debug: true });
 
 const app = new cdk.App();
-new InfraStack(app, 'InfraStack', {
+new ChatifyStack(app, 'ChatifyStack', {
   tags: {
     env: 'test',
     app: 'chatify',
@@ -16,6 +16,7 @@ new InfraStack(app, 'InfraStack', {
     account: process.env.AWS_ACCOUNT_ID,
     region: process.env.AWS_REGION,
   },
+  isLocal: process.env.CDK_LOCAL === 'true',
   /* If you don't specify 'env', this stack will be environment-agnostic.
    * Account/Region-dependent features and context lookups will not work,
    * but a single synthesized template can be deployed anywhere. */

@@ -5,10 +5,14 @@
     "infra": "bin/infra.js"
   },
   "scripts": {
-    "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk"
+    "build": "tsc",
+    "cdk:synth": "cdk synth",
+    "cdk:list": "cdk ls -l",
+    "cdk:diff": "cdk diff --profile=jzpg",
+    "cdk:deploy": "CDK_LOCAL=false cdk deploy --profile=jzpg --require-approval never",
+    "cdk:destroy": "CDK_LOCAL=false cdk destroy --profile=jzpg"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
