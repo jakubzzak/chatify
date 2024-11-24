@@ -22,11 +22,18 @@ export class FirebaseService {
   constructor() {
     const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_OBJECT;
 
-    this.client = admin.initializeApp({
-      credential: admin.credential.cert(
-        JSON.parse(Buffer.from(serviceAccount, 'base64').toString('ascii')),
-      ),
-    });
+    try {
+      this.client = admin.app('chatify-server');
+    } catch (error) {
+      this.client = admin.initializeApp(
+        {
+          credential: admin.credential.cert(
+            JSON.parse(Buffer.from(serviceAccount, 'base64').toString('ascii')),
+          ),
+        },
+        'chatify-server',
+      );
+    }
   }
 
   authenticateWithEmail = async (authToken: string): Promise<UserEntity> => {

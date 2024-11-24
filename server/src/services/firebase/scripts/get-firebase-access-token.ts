@@ -13,7 +13,6 @@ const base64AccountObject = Buffer.from(
   process.env.FIREBASE_SERVICE_ACCOUNT_OBJECT,
   'base64',
 ).toString('ascii');
-console.log('account', base64AccountObject);
 const projectId = JSON.parse(base64AccountObject).project_id;
 
 const app = initializeApp({ apiKey, projectId }, 'local-auth-script');

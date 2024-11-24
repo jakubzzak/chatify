@@ -1,13 +1,17 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { ExpressAdapter } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { createServer } from 'aws-serverless-express';
+import { eventContext } from 'aws-serverless-express/middleware';
+import * as cookieParser from 'cookie-parser';
+import * as express from 'express';
+import * as process from 'node:process';
 import * as os from 'os';
 import { AppModule } from './app.module';
 import { LoggerMiddleware } from './core/middlewares/logger';
-import * as process from 'node:process';
-import * as cookieParser from 'cookie-parser';
 
-async function bootstrap() {
+export async function bootstrapMain() {
   const logger = new Logger('bootstrap');
 
   const app = await NestFactory.create(AppModule);
@@ -70,4 +74,45 @@ async function bootstrap() {
   });
 }
 
-bootstrap();
+export async function bootstrapLambda() {
+  const expressApp = express();
+  const app = await NestFactory.create(
+    AppModule,
+    new ExpressAdapter(expressApp),
+  );
+
+  app.enableCors({
+    origin: process.env.ALLOWED_ORIGINS?.split(','),
+    credentials: true,
+  });
+  app.use(eventContext());
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  app.use(cookieParser());
+
+  // Only set up Swagger in development
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('Chatify')
+      .setDescription('The Chatify API description')
+      .setVersion('1.0')
+      .addBearerAuth({
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Input your JWT token',
+      })
+      .addSecurityRequirements('bearer')
+      .addTag('room')
+      .addTag('chat')
+      .addTag('message')
+      .addTag('profile')
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api', app, document);
+  }
+
+  await app.init();
+
+  return createServer(expressApp);
+}

@@ -3,7 +3,6 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { FirebaseModule } from '@services/firebase/firebase.module';
-import { join } from 'path';
 import { queryResolvers } from './resolvers';
 
 @Module({
@@ -11,7 +10,9 @@ import { queryResolvers } from './resolvers';
     FirebaseModule,
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
-      autoSchemaFile: join(process.cwd(), 'src/services/graphql/schema.gql'),
+      autoSchemaFile: true,
+      // lambda does not support autoSchemaFile as a path
+      // autoSchemaFile: join(process.cwd(), 'src/services/graphql/schema.gql'),
       sortSchema: true,
     }),
     RoomModule,

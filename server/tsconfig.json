@@ -1,13 +1,13 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "declaration": true,
+    "declaration": false,
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "target": "ES2021",
-    "sourceMap": true,
+    "sourceMap": false,
     "outDir": "./dist",
     "baseUrl": "./",
     "incremental": true,
@@ -17,6 +17,7 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
+    "types": ["node", "aws-lambda"],
     "paths": {
       "@services/*": ["src/services/*"],
       "@core/*": ["src/core/*"],
@@ -24,6 +25,7 @@
       "@domains/user/*": ["src/user/*"],
       "@domains/room/*": ["src/room/*"],
       "@domains/chat/*": ["src/chat/*"]
-    }
+    },
+    
   }
 }
